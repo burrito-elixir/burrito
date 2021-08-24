@@ -1,0 +1,4 @@
+89c89
+<     start "elixir" --no-halt
+---
+>     start "elixir" --no-halt -- $@

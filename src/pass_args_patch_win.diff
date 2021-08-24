@@ -1,0 +1,4 @@
+99c99
+<   --vm-args "!RELEASE_VM_ARGS!"
+---
+>   --vm-args "!RELEASE_VM_ARGS!" -- %*
