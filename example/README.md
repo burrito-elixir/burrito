@@ -1,21 +1,11 @@
 # ExampleCliApp
 
-**TODO: Add description**
+This is an example usage of [Burrito](https://github.com/burrito-elixir/burrito), for cross-compiling an Elixir application for distribution.
 
-## Installation
+## Usage
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `example_cli_app` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:example_cli_app, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/example_cli_app](https://hexdocs.pm/example_cli_app).
-
+1) Install dependencies: `mix deps.get`
+2) Build a release:
+    - In debug mode: `mix release`
+    - In production mode: `MIX_ENV=prod mix release` 
+4) Execute the compiled binary: `burrito_out/example_cli_app_native`
