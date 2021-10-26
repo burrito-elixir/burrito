@@ -13,6 +13,7 @@
   * [Mix Release Config Options](#mix-release-config-options)
   * [Build-Time Environment Variables](#build-time-environment-variables)
   * [Application Entry Point](#application-entry-point)
+  * [Maintenance Commands](#maintenance-commands)
 * [Known Limitations and Issues](#known-limitations-and-issues)
   * [Runtime Requirements](#runtime-requirements)
   * [Libc Support](#libc-support)
@@ -35,6 +36,7 @@ We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakewar
   * Compilation artifacts for any [elixir-make](https://github.com/elixir-lang/elixir_make) based NIFs used by the project
 * Provides a "plugin" interface for injecting Zig code into your application's boot sequence
   * We use this to perform automatic updates and licensing checks (see `lib/versions/release_file.ex` for details)
+* Automatically uninstalls old versions of the payload if a new version is run.
 
 #### Technical Component Overview
 Burrito is composed of a few different components:
@@ -170,6 +172,11 @@ If you wish you retrieve the argv passed to your program use this snippet:
 ```elixir
  args = :init.get_plain_arguments() |> Enum.map(&to_string/1)
  ```
+
+#### Maintenance Commands
+Burrito wrapped application binaries will have a built in set of sub-commands called "maintenance commands", these can be used to managed the unpacked installation on a runtime machine.
+
+* `./my-binary maintenance uninstall` - Will prompt to uninstall the unpacked payload on the host machine.
 
 ## Known Limitations and Issues
 #### Runtime Requirements
