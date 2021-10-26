@@ -1,5 +1,5 @@
 # Burrito 🌯
-### An Experimental Method For Elixir Command Line Application Distribution
+## Cross-Platform Elixir Deployments
 
 * [What Is It?](#what-is-it)
   * [Background](#background)
@@ -7,7 +7,7 @@
   * [Technical Component Overview](#technical-component-overview)
   * [End-To-End Overview](#end-to-end-overview)
 * [Quick Start](#quick-start)
-  * [Experimental Disclaimer](#experimental-disclaimer)
+  * [Experimental Disclaimer](#disclaimer)
   * [Preparation and Requirements](#preparation-and-requirements)
   * [Mix Project Setup](#mix-project-setup)
   * [Mix Release Config Options](#mix-release-config-options)
@@ -17,7 +17,7 @@
   * [Runtime Requirements](#runtime-requirements)
   * [Libc Support](#libc-support)
 * [Contributing](#contributing)
-  * [Welcome!](#welcome-)
+  * [Welcome!](#welcome)
 
 ## What Is It?
 
