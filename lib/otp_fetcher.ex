@@ -4,7 +4,7 @@ defmodule Burrito.OTPFetcher do
 
   plug(Tesla.Middleware.FollowRedirects)
 
-  @versions_url_darwin_linux "https://api.github.com/repos/QuinnWilton/beamup/releases"
+  @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases"
 
   @erl_launch_script """
@@ -46,7 +46,7 @@ defmodule Burrito.OTPFetcher do
     # die if we cannot download that version
     if selected_version == nil do
       Logger.error(
-        "Sorry! We cannot fetch the requested OTP version (OTP-#{otp_version}) for platform #{inspect(platform)} as it's not available in [QuinnWilton/beamup] or [otp/releases]"
+        "Sorry! We cannot fetch the requested OTP version (OTP-#{otp_version}) for platform #{inspect(platform)} as it's not available in [burrito-elixir/erlang-builder] or [otp/releases]"
       )
 
       exit(1)
