@@ -4,7 +4,7 @@ defmodule Burrito.OTPFetcher do
 
   plug(Tesla.Middleware.FollowRedirects)
 
-  @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases"
+  @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases?per_page=100"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases"
 
   @erl_launch_script """
