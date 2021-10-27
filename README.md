@@ -174,7 +174,7 @@ If you wish you retrieve the argv passed to your program use this snippet:
  ```
 
 #### Maintenance Commands
-Burrito wrapped application binaries will have a built in set of sub-commands called "maintenance commands", these can be used to managed the unpacked installation on a runtime machine.
+Binaries built by Burrito include a built-in set of commands for performing maintenance operations against the included application:
 
 * `./my-binary maintenance uninstall` - Will prompt to uninstall the unpacked payload on the host machine.
 
