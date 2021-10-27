@@ -110,7 +110,14 @@ You must have the following installed and in your PATH:
 
 #### Mix Project Setup
 
-1. Install Burrito using the standard `mix.exs` methods.
+1. Add `burrito` to your list of dependencies:
+
+```elixir
+defp deps() do
+  [{:burrito, github: "burrito-elixir/burrito"}]
+end
+```
+
 2. Create a `releases` function in your `mix.exs`, add and configure the following for your project:
 
 ```elixir
