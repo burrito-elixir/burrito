@@ -89,8 +89,8 @@ defmodule Burrito.Versions.ReleaseFile do
   Which will return either the release map data of a newer release, or `nil` if there is no newer release.
   """
 
-  def fetch_releases_from_url(url) when is_binary(url) do
-    Req.get!(url).body
+  def fetch_releases_from_url(url, req_options \\ []) when is_binary(url) do
+    Req.get!(url, req_options).body
   end
 
   @spec get_new_version(map(), String.t()) :: map() | nil
