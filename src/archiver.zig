@@ -92,8 +92,7 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
     }
 
     // Log success
-    try stdout.print("\n", .{});
-    log.info("Archived {} files into payload! 📥", .{count});
+    try stdout.print("\nArchived {} files into payload! 📥", .{count});
 
     // Clean up memory
     walker.deinit();
