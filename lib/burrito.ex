@@ -31,6 +31,9 @@ defmodule Burrito do
 
     current_system = get_current_os()
 
+    :telemetry_sup.start_link()
+    Finch.start_link(name: Req.Finch)
+
     Enum.each(targets, fn target ->
       if Enum.member?(@supported_targets, target) do
         # if we're building for the current host system, use a :native target

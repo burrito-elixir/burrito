@@ -89,14 +89,8 @@ defmodule Burrito.Versions.ReleaseFile do
   Which will return either the release map data of a newer release, or `nil` if there is no newer release.
   """
 
-  @spec fetch_releases_from_url(String.t()) ::
-          {:ok, map()} | {:error, Tesla.Error.t() | Jason.Error.t() | Tesla.Env.t()}
   def fetch_releases_from_url(url) when is_binary(url) do
-    case Tesla.get(url) do
-      {:ok, %Tesla.Env{status: 200, body: body}} -> {:ok, parse_version(body)}
-      {:ok, %Tesla.Env{} = resp} -> {:error, resp}
-      {:error, _} = error -> error
-    end
+    Req.get!(url).body
   end
 
   @spec get_new_version(map(), String.t()) :: map() | nil
@@ -106,13 +100,6 @@ defmodule Burrito.Versions.ReleaseFile do
       newer_version
     else
       _ -> nil
-    end
-  end
-
-  defp parse_version(content) when is_binary(content) do
-    case Jason.decode(content) do
-      {:ok, map} -> map
-      {:error, _} = error -> error
     end
   end
 

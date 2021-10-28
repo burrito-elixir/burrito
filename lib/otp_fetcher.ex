@@ -1,8 +1,5 @@
 defmodule Burrito.OTPFetcher do
-  use Tesla
   require Logger
-
-  plug(Tesla.Middleware.FollowRedirects)
 
   @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases?per_page=100"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases?per_page=100"
@@ -35,8 +32,6 @@ defmodule Burrito.OTPFetcher do
   $ROOTDIR/bin/run_erl -daemon /tmp/ $ROOTDIR/log "exec $ROOTDIR/bin/start_erl $ROOTDIR $RELDIR $START_ERL_DATA"
   """
 
-  plug(Tesla.Middleware.Headers, [{"user-agent", "Burrito.OTPFetcher"}])
-
   def download_and_replace_erts_release(erts_version, otp_version, release_path, platform) do
     versions = get_otp_versions(platform)
 
@@ -56,23 +51,22 @@ defmodule Burrito.OTPFetcher do
 
     Logger.info("Downloading replacement ERTS: #{download_url}")
 
-    data = get!(download_url)
+    data = Req.get!(download_url).body
     do_unpack(data, release_path, erts_version, platform)
   end
 
   def get_otp_versions(platform) do
     res =
       case platform do
-        :darwin -> get!(@versions_url_darwin_linux)
-        :linux -> get!(@versions_url_darwin_linux)
-        :win64 -> get!(@versions_url_windows)
+        :darwin -> Req.get!(@versions_url_darwin_linux).body
+        :linux -> Req.get!(@versions_url_darwin_linux).body
+        :win64 -> Req.get!(@versions_url_windows).body
         _ ->
           Logger.error("#{inspect(platform)} is not a valid target platform! Burrito supports :darwin, :linux, and :win64")
           exit(1)
       end
 
-    Jason.decode!(res.body)
-    |> Enum.map(fn release ->
+    Enum.map(res, fn release ->
       version = String.replace_leading(release["tag_name"], "OTP-", "")
       platform_string = Atom.to_string(platform)
 
@@ -90,7 +84,7 @@ defmodule Burrito.OTPFetcher do
 
     Logger.info("Saving win64 ERTS setup file to #{dest_path}")
 
-    File.write!(dest_path, data.body)
+    File.write!(dest_path, data)
 
     random_dir_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
     extraction_path = System.tmp_dir!() |> Path.join("/erts-#{random_dir_id}")
@@ -150,7 +144,7 @@ defmodule Burrito.OTPFetcher do
 
     Logger.info("Saving MacOS ERTS tarball to #{dest_path}")
 
-    File.write!(dest_path, data.body)
+    File.write!(dest_path, data)
 
     random_dir_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
     extraction_path = System.tmp_dir!() |> Path.join("/erts-#{random_dir_id}")
@@ -210,7 +204,7 @@ defmodule Burrito.OTPFetcher do
 
     Logger.info("Saving Linux ERTS tarball to #{dest_path}")
 
-    File.write!(dest_path, data.body)
+    File.write!(dest_path, data)
 
     random_dir_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
     extraction_path = System.tmp_dir!() |> Path.join("/erts-#{random_dir_id}")
