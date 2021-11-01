@@ -3,7 +3,7 @@ defmodule Burrito do
 
   require Logger
 
-  @supported_targets [:win64, :darwin, :linux]
+  @supported_targets [:win64, :darwin, :linux, :linux_musl]
 
   @success_banner """
   \n\n
@@ -135,6 +135,7 @@ defmodule Burrito do
         :win64 -> "x86_64-windows-gnu"
         :darwin -> "x86_64-macos"
         :linux -> "x86_64-linux-gnu"
+        :linux_musl -> "x86_64-linux-musl"
         _ -> ""
       end
 
@@ -286,7 +287,15 @@ defmodule Burrito do
     case :os.type() do
       {:win32, _} -> :windows
       {:unix, :darwin} -> :darwin
-      {:unix, :linux} -> :linux
+      {:unix, :linux} -> get_libc_type()
+    end
+  end
+
+  defp get_libc_type do
+    {result, _} = System.cmd("ldd", ["--version"])
+    cond do
+      String.contains?(result, "musl") -> :linux_musl
+      true -> :linux
     end
   end
 
