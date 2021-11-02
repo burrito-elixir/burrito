@@ -52,7 +52,7 @@ pub fn main() anyerror!void {
     log.debug("Metadata path: {s}", .{metadata_path});
 
     // Ensure the destination directory is created
-    std.os.mkdir(install_dir, 0o755) catch {};
+    try std.fs.cwd().makePath(install_dir);
 
     // If the metadata file exists, don't install again
     var needs_install: bool = false;
