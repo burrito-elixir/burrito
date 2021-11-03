@@ -27,7 +27,7 @@ Burrito is our answer to the problem of distributing Elixir CLI applications acr
 
 Furthermore, these tools depend on NIFs that we need to cross-compile for any of the environments that we support, from one common build server, running in our CI environment.
 
-We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakeware), which lays a lot of the ground work for our approach. Ultimately we implemented and expanded upon many of Bakeware's ideas using. [Zig](https://ziglang.org/).
+We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakeware), which lays a lot of the ground work for our approach. Ultimately we implemented and expanded upon many of Bakeware's ideas using [Zig](https://ziglang.org/).
 
 #### Feature Overview
 * Builds a self-extracting archive for a Mix project, targeting Windows, MacOS, and Linux, containing:
