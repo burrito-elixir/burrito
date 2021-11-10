@@ -126,7 +126,7 @@ end
     example_cli_app: [
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
-        targets: [:darwin, :win64, :linux]
+        targets: [:darwin, :win64, :linux, :linux_musl]
       ]
     ]
   ]
@@ -145,7 +145,7 @@ In order to speed up iteration times during development, if the Mix environment 
 
 #### Mix Release Config Options
 
-* `targets` - A list of atoms, the targets you want to build for (`:darwin`, `:win64`, `:linux`) whenever you run a `mix release` command -- if not defined, defaults to native host platform only.
+* `targets` - A list of atoms, the targets you want to build for (`:darwin`, `:win64`, `:linux`, `:linux_musl`) whenever you run a `mix release` command -- if not defined, defaults to native host platform only.
 * `debug` - Boolean, will produce a debug build if set to true. (Default: `false`)
 * `no_clean` - Boolean, will not clean up after building if set to true. (Default: `false`)
 * `plugin` - String, a path to a Zig file that contains a function `burrito_plugin_entry()` which will be called before unpacking the payload at runtime. See [the example application for details.](example/test_plugin/plugin.zig)
@@ -196,9 +196,6 @@ Minimizing the runtime dependencies of the package binaries is an explicit desig
 * libncurses-5 
 ##### MacOS
 * No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes codesigning
-
-#### Libc Support
-For Linux builds, we currently only produce glibc linked binaries. We have plans to add support for [musl-libc](https://www.musl-libc.org/) in the future!
 
 ## Contributing
 #### Welcome!
