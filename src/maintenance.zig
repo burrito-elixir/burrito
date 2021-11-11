@@ -8,19 +8,19 @@ const MetaStruct = metadata.MetaStruct;
 
 pub fn do_maint(args: [][]u8, install_dir: []const u8) !void {
     if (args.len < 1) {
-        try logger.warn("No sub-command provided!", .{});
+        logger.warn("No sub-command provided!", .{});
     } else {
         if (std.mem.eql(u8, args[0], "uninstall")) {
             try do_uninstall(install_dir);
         }
     }
-    try logger.info("Quitting.", .{});
+    logger.info("Quitting.", .{});
 }
 
 fn confirm() !bool {
     var stdin = std.io.getStdIn().reader();
 
-    try logger.query("Please confirm this action [y/n]: ", .{});
+    logger.query("Please confirm this action [y/n]: ", .{});
 
     var buf: [8]u8 = undefined;
     if (try stdin.readUntilDelimiterOrEof(buf[0..], '\n')) |user_input| {
@@ -34,15 +34,15 @@ fn confirm() !bool {
 }
 
 fn do_uninstall(install_dir: []const u8) !void {
-    try logger.warn("This will uninstall the application runtime for this Burrito binary!", .{});
+    logger.warn("This will uninstall the application runtime for this Burrito binary!", .{});
     if ((try confirm()) == false) {
-        try logger.warn("Uninstall was aborted!", .{});
+        logger.warn("Uninstall was aborted!", .{});
         return;
     }
 
-    try logger.info("Deleting directory: {s}", .{install_dir});
+    logger.info("Deleting directory: {s}", .{install_dir});
     try std.fs.deleteTreeAbsolute(install_dir);
-    try logger.info("Uninstall complete!", .{});
+    logger.info("Uninstall complete!", .{});
 }
 
 pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_path: []const u8) !void {
@@ -74,7 +74,7 @@ pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_pa
             // Compare the version, if it's older, delete the directory
             if (std.SemanticVersion.order(current_install.?.version, other_install.?.version) == .gt) {
                 try prefix_dir.deleteTree(other_install.?.install_dir_path);
-                try logger.info("Uninstalled older version (v{s})", .{other_install.?.metadata.app_version});
+                logger.info("Uninstalled older version (v{s})", .{other_install.?.metadata.app_version});
             }
         }
     }
