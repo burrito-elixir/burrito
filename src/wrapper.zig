@@ -148,8 +148,25 @@ fn do_payload_install(install_dir: []const u8, metadata_path: []const u8) !void 
     try file.writeAll(RELEASE_METADATA_JSON);
 }
 
-fn get_base_install_dir() ![]u8 {
-    return try fs.getAppDataDir(allocator, install_suffix);
+fn get_base_install_dir() ![]const u8 {
+    const app_dir = fs.getAppDataDir(allocator, install_suffix) catch {
+        try install_dir_error();
+        return "";
+    };
+
+    // If we have a override for the install path, use that, otherwise, continue to return
+    // the standard install path
+    if (std.process.getEnvVarOwned(allocator, "APPLICATION_INSTALL_DIR")) |new_path| {
+        try logger.info("Install path is being overriden using `APPLICATION_INSTALL_DIR`", .{});
+        try logger.info("New install path is: {s}", .{new_path});
+        return try fs.path.join(allocator, &[_][]const u8{ new_path, install_suffix });
+    } else |err| switch (err) {
+        error.InvalidUtf8 => {},
+        error.EnvironmentVariableNotFound => {},
+        error.OutOfMemory => {},
+    }
+
+    return app_dir;
 }
 
 fn get_install_dir(meta: *const MetaStruct) ![]u8 {
@@ -160,9 +177,25 @@ fn get_install_dir(meta: *const MetaStruct) ![]u8 {
     const dir_name = try std.fmt.allocPrint(allocator, "{s}_erts-{s}_{s}", .{ build_options.RELEASE_NAME, meta.erts_version, meta.app_version });
 
     // Ensure that base directory is created
-    std.os.mkdir(base_install_path, 0o755) catch {};
+    std.os.mkdir(base_install_path, 0o755) catch {
+        try install_dir_error();
+        return "";
+    };
 
     // Construct the full app install path
-    const name = try fs.path.join(allocator, &[_][]const u8{ install_suffix, dir_name });
-    return fs.getAppDataDir(allocator, name);
+    const name = fs.path.join(allocator, &[_][]const u8{ base_install_path, dir_name }) catch {
+        try install_dir_error();
+        return "";
+    };
+
+    return name;
+}
+
+fn install_dir_error() !void {
+    try logger.err("We could not use the default directory we would normally use to run this application.", .{});
+    try logger.err("This may be due to a permissions error, or some system specific configurations.", .{});
+    try logger.err("Please override the default burrito install directory using the `APPLICATION_INSTALL_DIR` environment variable.", .{});
+    try logger.err("On Linux or MacOS you can run the command: `export APPLICATION_INSTALL_DIR=/some/other/path`", .{});
+    try logger.err("On Windows you can use: `SET APPLICATION_INSTALL_DIR=D:\\some\\other\\path`", .{});
+    std.process.exit(1);
 }
