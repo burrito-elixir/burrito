@@ -84,7 +84,7 @@ pub fn main() anyerror!void {
 
     // Check for maintenance commands
     if (args_trimmed.len > 0 and std.mem.eql(u8, args_trimmed[0], "maintenance")) {
-        logger.info("Entering burrito maintenance mode...", .{});
+        logger.info("Entering {s} maintenance mode...", .{build_options.RELEASE_NAME});
         logger.info("Build metadata: {s}", .{RELEASE_METADATA_JSON});
         try maint.do_maint(args_trimmed[1..], install_dir);
         return;
@@ -149,15 +149,13 @@ fn do_payload_install(install_dir: []const u8, metadata_path: []const u8) !void 
 }
 
 fn get_base_install_dir() ![]const u8 {
-    const app_dir = fs.getAppDataDir(allocator, install_suffix) catch {
-        install_dir_error();
-        return "";
-    };
-
     // If we have a override for the install path, use that, otherwise, continue to return
     // the standard install path
-    if (std.process.getEnvVarOwned(allocator, "APPLICATION_INSTALL_DIR")) |new_path| {
-        logger.info("Install path is being overriden using `APPLICATION_INSTALL_DIR`", .{});
+    const upper_name = try std.ascii.allocUpperString(allocator, build_options.RELEASE_NAME);
+    const env_install_dir_name = try std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name});
+
+    if (std.process.getEnvVarOwned(allocator, env_install_dir_name)) |new_path| {
+        logger.info("Install path is being overriden using `{s}`", .{env_install_dir_name});
         logger.info("New install path is: {s}", .{new_path});
         return try fs.path.join(allocator, &[_][]const u8{ new_path, install_suffix });
     } else |err| switch (err) {
@@ -165,6 +163,11 @@ fn get_base_install_dir() ![]const u8 {
         error.EnvironmentVariableNotFound => {},
         error.OutOfMemory => {},
     }
+
+    const app_dir = fs.getAppDataDir(allocator, install_suffix) catch {
+        install_dir_error();
+        return "";
+    };
 
     return app_dir;
 }
@@ -193,11 +196,14 @@ fn get_install_dir(meta: *const MetaStruct) ![]u8 {
     return name;
 }
 
-fn install_dir_error() noreturn {
+fn install_dir_error() void {
+    const upper_name = std.ascii.allocUpperString(allocator, build_options.RELEASE_NAME) catch { return; };
+    const env_install_dir_name = std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name}) catch { return; };
+
     logger.err("We could not install this application to the default directory.", .{});
     logger.err("This may be due to a permission error.", .{});
-    logger.err("Please override the default burrito install directory using the `APPLICATION_INSTALL_DIR` environment variable.", .{});
-    logger.err("On Linux or MacOS you can run the command: `export APPLICATION_INSTALL_DIR=/some/other/path`", .{});
-    logger.err("On Windows you can use: `SET APPLICATION_INSTALL_DIR=D:\\some\\other\\path`", .{});
+    logger.err("Please override the default {s} install directory using the `{s}` environment variable.", .{build_options.RELEASE_NAME, env_install_dir_name});
+    logger.err("On Linux or MacOS you can run the command: `export {s}=/some/other/path`", .{env_install_dir_name});
+    logger.err("On Windows you can use: `SET {s}=D:\\some\\other\\path`", .{env_install_dir_name});
     std.process.exit(1);
 }
