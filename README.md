@@ -175,9 +175,9 @@ end
 
 ```
 
-If you wish you retrieve the argv passed to your program use this snippet:
+If you wish you retrieve the argv passed to your program by Burrito use this snippet:
 ```elixir
- args = :init.get_plain_arguments() |> Enum.map(&to_string/1)
+ args = Burrito.Util.Args.get_arguments() # this returns a list of strings
  ```
 
 #### Maintenance Commands
