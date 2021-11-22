@@ -37,6 +37,13 @@ pub const RELEASE_METADATA_JSON = @embedFile("../_metadata.json");
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 var allocator = &arena.allocator;
 
+// Windows cmd argument parser
+const windows = std.os.windows;
+const LPCWSTR = windows.LPCWSTR;
+const LPWSTR = windows.LPWSTR;
+pub extern "kernel32" fn GetCommandLineW() LPWSTR;
+pub extern "shell32" fn CommandLineToArgvW(lpCmdLine: LPCWSTR, out_pNumArgs: *c_int) ?[*]LPWSTR;
+
 pub fn main() anyerror!void {
     log.debug("Size of embedded payload is: {}", .{FOILZ_PAYLOAD.len});
 
@@ -65,10 +72,30 @@ pub fn main() anyerror!void {
         }
     };
 
-    // Get argvs
-    const args = try std.process.argsAlloc(allocator);
-    const args_trimmed = args[1..];
-    defer std.process.argsFree(allocator, args);
+    var args: ?[][] u8 = null;
+
+    // Get argvs -- on Windows we need to call CommandLineToArgvW() with GetCommandLineW()
+    if (builtin.os.tag == .windows) {
+        // Windows arguments
+        var arg_count: c_int = undefined;
+        var raw_args = CommandLineToArgvW(GetCommandLineW(), &arg_count);
+        var windows_arg_list = std.ArrayList([]u8).init(allocator);
+        var i: c_int = 0;
+        while (i < arg_count) : (i += 1) {
+            var index = @intCast(usize, i);
+            var length = std.mem.len(raw_args.?[index]);
+            const argument = try std.unicode.utf16leToUtf8Alloc(allocator, raw_args.?[index][0..length]);
+            try windows_arg_list.append(argument);
+        }
+
+        args = windows_arg_list.items;
+    } else {
+        // POSIX arguments
+        args = try std.process.argsAlloc(allocator);
+    }
+
+    const args_trimmed = args.?[1..];
+
     const args_string = try std.mem.join(allocator, " ", args_trimmed);
     log.debug("Passing args string: {s}", .{args_string});
 
@@ -121,8 +148,21 @@ pub fn main() anyerror!void {
 
         const bat_path = try std.mem.concat(allocator, u8, &[_][]const u8{ base_bin_path, ".bat" });
 
+        // HACK: To get aroung the many issues with escape characters (like ", ', =, !, and %) in Windows
+        // we will encode each argument as a base64 string, these will be then be decoded using `Burrito.Util.Args.get_arguments/0`.
+        try env_map.put("_ARGUMENTS_ENCODED", "1");
+        var encoded_list = std.ArrayList([]u8).init(allocator);
+        defer encoded_list.deinit();
+
+        for (args_trimmed) |argument| {
+            const encoded_len = std.base64.standard_no_pad.Encoder.calcSize(argument.len);
+            const argument_encoded = try allocator.alloc(u8, encoded_len);
+            _ = std.base64.standard_no_pad.Encoder.encode(argument_encoded, argument);
+            try encoded_list.append(argument_encoded);
+        }
+
         const win_args = &[_][]const u8{ bat_path, "start", exe_name };
-        const final_args = try std.mem.concat(allocator, []const u8, &.{ win_args, args_trimmed });
+        const final_args = try std.mem.concat(allocator, []const u8, &.{ win_args, encoded_list.items });
 
         const win_child_proc = try std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = &env_map;
