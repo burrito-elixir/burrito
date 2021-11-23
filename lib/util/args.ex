@@ -8,20 +8,22 @@ defmodule Burrito.Util.Args do
 
   @spec get_arguments :: list(String.t())
   def get_arguments do
+    args = :init.get_plain_arguments() |> Enum.map(&to_string/1)
+
     if is_windows?() && args_are_encoded?() do
-      {prefix, trimmed} = :init.get_plain_arguments() |> Enum.split(4)
+      {prefix, trimmed} = Enum.split(args, 4)
 
       decoded =
         Enum.map(trimmed, fn arg ->
-          case Base.decode64(to_string(arg), padding: false) do
+          case Base.decode64(arg, padding: false) do
             {:ok, decoded_arg} -> decoded_arg
-            :error -> to_string(arg)
+            :error -> arg
           end
         end)
 
       prefix ++ decoded
     else
-      :init.get_plain_arguments() |> Enum.map(fn arg -> to_string(arg) end)
+      args
     end
   end
 
