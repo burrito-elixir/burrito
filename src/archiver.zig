@@ -42,7 +42,6 @@ const MAGIC = "FOILZ";
 const MAX_READ_SIZE = 1000000000;
 
 pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void {
-    const stdout = std.io.getStdOut().writer();
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const a = &arena.allocator;
 
@@ -87,12 +86,14 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
             try write_file_record(&foilz_writer, index, file_buffer, stat.mode);
 
             count = count + 1;
-            try stdout.print("\rinfo: 🔍 Files Packed: {}", .{count});
+
+            direct_log("\rinfo: 🔍 Files Packed: {}", .{count});
         }
     }
+    direct_log("\n", .{});
 
     // Log success
-    try stdout.print("\nArchived {} files into payload! 📥", .{count});
+    log.info("Archived {} files into payload! 📥", .{count});
 
     // Clean up memory
     walker.deinit();
@@ -206,4 +207,12 @@ fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: *std
         full_dir_path = try fs.path.join(allocator, &[_][]const u8{ full_dir_path, sub_dir });
         os.mkdir(full_dir_path, 0o755) catch {};
     }
+}
+
+// Adapted from `std.log`, but without forcing a newline
+fn direct_log(comptime message: []const u8, args: anytype) void {
+    const stderrLock = std.debug.getStderrMutex().acquire();
+    defer stderrLock.release();
+    const stderr = std.io.getStdErr().writer(); // Using the same IO as `std.log`
+    nosuspend stderr.print(message, args) catch return;
 }
