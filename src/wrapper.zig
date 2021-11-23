@@ -72,7 +72,7 @@ pub fn main() anyerror!void {
         }
     };
 
-    var args: ?[][] u8 = null;
+    var args: ?[][]u8 = null;
 
     // Get argvs -- on Windows we need to call CommandLineToArgvW() with GetCommandLineW()
     if (builtin.os.tag == .windows) {
@@ -237,12 +237,16 @@ fn get_install_dir(meta: *const MetaStruct) ![]u8 {
 }
 
 fn install_dir_error() void {
-    const upper_name = std.ascii.allocUpperString(allocator, build_options.RELEASE_NAME) catch { return; };
-    const env_install_dir_name = std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name}) catch { return; };
+    const upper_name = std.ascii.allocUpperString(allocator, build_options.RELEASE_NAME) catch {
+        return;
+    };
+    const env_install_dir_name = std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name}) catch {
+        return;
+    };
 
     logger.err("We could not install this application to the default directory.", .{});
     logger.err("This may be due to a permission error.", .{});
-    logger.err("Please override the default {s} install directory using the `{s}` environment variable.", .{build_options.RELEASE_NAME, env_install_dir_name});
+    logger.err("Please override the default {s} install directory using the `{s}` environment variable.", .{ build_options.RELEASE_NAME, env_install_dir_name });
     logger.err("On Linux or MacOS you can run the command: `export {s}=/some/other/path`", .{env_install_dir_name});
     logger.err("On Windows you can use: `SET {s}=D:\\some\\other\\path`", .{env_install_dir_name});
     std.process.exit(1);
