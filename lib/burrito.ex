@@ -293,6 +293,7 @@ defmodule Burrito do
 
   defp get_libc_type do
     {result, _} = System.cmd("ldd", ["--version"])
+
     cond do
       String.contains?(result, "musl") -> :linux_musl
       true -> :linux

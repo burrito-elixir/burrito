@@ -58,17 +58,29 @@ defmodule Burrito.OTPFetcher do
   def get_otp_versions(platform) do
     {res, platform_string} =
       case platform do
-        :darwin -> {Req.get!(@versions_url_darwin_linux).body, "darwin"}
-        :linux -> {Req.get!(@versions_url_darwin_linux).body, "linux"}
-        :linux_musl -> {Req.get!(@versions_url_darwin_linux).body, "musl_libc"}
-        :win64 -> {Req.get!(@versions_url_windows).body, "win64"}
+        :darwin ->
+          {Req.get!(@versions_url_darwin_linux).body, "darwin"}
+
+        :linux ->
+          {Req.get!(@versions_url_darwin_linux).body, "linux"}
+
+        :linux_musl ->
+          {Req.get!(@versions_url_darwin_linux).body, "musl_libc"}
+
+        :win64 ->
+          {Req.get!(@versions_url_windows).body, "win64"}
+
         _ ->
-          Logger.error("#{inspect(platform)} is not a valid target platform! Burrito supports :darwin, :linux, and :win64")
+          Logger.error(
+            "#{inspect(platform)} is not a valid target platform! Burrito supports :darwin, :linux, and :win64"
+          )
+
           exit(1)
       end
 
     Enum.map(res, fn release ->
       version = String.replace_leading(release["tag_name"], "OTP-", "")
+
       asset =
         release["assets"]
         |> Enum.find(fn asset -> String.contains?(asset["name"], platform_string) end)
@@ -255,5 +267,6 @@ defmodule Burrito.OTPFetcher do
     extraction_path
   end
 
-  defp do_unpack(data, release_path, erts_version, :linux_musl), do: do_unpack(data, release_path, erts_version, :linux)
+  defp do_unpack(data, release_path, erts_version, :linux_musl),
+    do: do_unpack(data, release_path, erts_version, :linux)
 end

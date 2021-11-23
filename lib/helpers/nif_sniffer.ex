@@ -11,7 +11,7 @@ defmodule Burrito.Helpers.NIFSniffer do
     paths = Mix.Project.deps_paths() |> Enum.filter(fn {name, _} -> name != :burrito end)
 
     Enum.map(paths, fn {dep_name, path} ->
-      Mix.Project.in_project(dep_name, path, fn module -> 
+      Mix.Project.in_project(dep_name, path, fn module ->
         if module && Keyword.has_key?(module.project, :compilers) do
           {dep_name, path, Enum.member?(module.project[:compilers], :elixir_make)}
         else
