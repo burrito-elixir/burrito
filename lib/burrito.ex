@@ -4,6 +4,7 @@ defmodule Burrito do
   require Logger
 
   @supported_targets [:win64, :darwin, :linux, :linux_musl]
+  @supported_target_strings Enum.map(@supported_targets, &Atom.to_string/1)
 
   @success_banner """
   \n\n
@@ -35,7 +36,7 @@ defmodule Burrito do
     Finch.start_link(name: Req.Finch)
 
     Enum.each(targets, fn target ->
-      if Enum.member?(@supported_targets, target) do
+      if target in @supported_targets do
         # if we're building for the current host system, use a :native target
         if current_system == target do
           do_wrap(release, :native, plugin, no_clean?, debug?)
@@ -43,9 +44,7 @@ defmodule Burrito do
           do_wrap(release, target, plugin, no_clean?, debug?)
         end
       else
-        Logger.warn(
-          "The target '#{inspect(target)}' is not supported, ignoring it. The supported targets are: #{string_supported_targets()}"
-        )
+        raise_unsupported_target(target)
       end
     end)
 
@@ -56,22 +55,22 @@ defmodule Burrito do
     System.get_env("BURRITO_TARGET", "")
     |> String.split(",", trim: true)
     |> Enum.map(&String.trim/1)
-    |> Enum.map(fn p ->
-      try do
-        String.to_existing_atom(p)
-      rescue
-        _e in ArgumentError ->
-          Logger.error(
-            "The override target '#{p}' is not supported! Supported targets: #{string_supported_targets()}"
-          )
-
-          exit(1)
+    |> Enum.map(fn target ->
+      if target in @supported_target_strings do
+        String.to_existing_atom(target)
+      else
+        raise_unsupported_target(target)
       end
     end)
   end
 
-  defp string_supported_targets do
-    Enum.map(@supported_targets, &Atom.to_string/1) |> Enum.join(", ")
+  defp raise_unsupported_target(target) do
+    Logger.error(
+      "The target #{target} is not supported. Supported targets are: " <>
+        Enum.join(@supported_target_strings, ", ")
+    )
+
+    exit(1)
   end
 
   defp do_wrap(%Mix.Release{} = release, build_target, plugin, no_clean?, debug_build?) do
