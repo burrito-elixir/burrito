@@ -211,8 +211,9 @@ fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: *std
 
 // Adapted from `std.log`, but without forcing a newline
 fn direct_log(comptime message: []const u8, args: anytype) void {
-    const stderrLock = std.debug.getStderrMutex().acquire();
-    defer stderrLock.release();
+    const stderrLock = std.debug.getStderrMutex();
+    stderrLock.lock();
+    defer stderrLock.unlock();
     const stderr = std.io.getStdErr().writer(); // Using the same IO as `std.log`
     nosuspend stderr.print(message, args) catch return;
 }
