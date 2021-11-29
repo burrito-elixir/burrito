@@ -111,7 +111,7 @@ defmodule Burrito.Versions.ReleaseFile do
         this_version = Map.get(release, "version", "0.0.0") |> Version.parse!()
         Version.compare(curr_version, this_version) == :lt
       end)
-      |> Enum.sort_by(fn r -> r["version"] |> Version.parse!() end, {:desc, Version})
+      |> Enum.sort_by(& &1["version"], {:desc, Version})
       |> List.first()
 
     newer_release
