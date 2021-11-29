@@ -32,8 +32,7 @@ defmodule Burrito do
 
     current_system = get_current_os()
 
-    :telemetry_sup.start_link()
-    Finch.start_link(name: Req.Finch)
+    {:ok, _} = Application.ensure_all_started(:req)
 
     Enum.each(targets, fn target ->
       if target in @supported_targets do
