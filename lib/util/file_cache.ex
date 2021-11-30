@@ -3,20 +3,14 @@ defmodule Burrito.Util.FileCache do
 
   @cache_namespace "burrito_file_cache"
 
-  @spec init_local_cache :: :ok
-  def init_local_cache do
-    get_cache_dir() |> File.mkdir_p!()
-  end
-
-  @spec fetch(binary()) :: {:hit, binary} | {:miss, nil}
+  @spec fetch(binary()) :: {:hit, binary} | :miss
   def fetch(key) when is_binary(key) do
     cache_dir = get_cache_dir()
     full_path = Path.join(cache_dir, [key])
 
-    if File.exists?(full_path) do
-      {:hit, File.read!(full_path)}
-    else
-      {:miss, nil}
+    case File.read(full_path) do
+      {:ok, data} -> {:hit, data}
+      {:error, :enoent} -> :miss
     end
   end
 
@@ -39,6 +33,10 @@ defmodule Burrito.Util.FileCache do
   def clear_cache do
     cache_dir = get_cache_dir()
     File.rm_rf!(cache_dir)
+  end
+
+  defp init_local_cache do
+    get_cache_dir() |> File.mkdir_p!()
   end
 
   defp get_cache_dir do
