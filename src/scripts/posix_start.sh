@@ -1,0 +1,74 @@
+#!/bin/sh
+set -e
+
+SELF=$(readlink "$0" || true)
+if [ -z "$SELF" ]; then SELF="$0"; fi
+RELEASE_ROOT="$(CDPATH='' cd "$(dirname "$SELF")/.." && pwd -P)"
+export RELEASE_ROOT
+export RELEASE_NAME="${RELEASE_NAME:-"example_cli_app"}"
+export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
+export RELEASE_COMMAND="$1"
+export RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
+
+REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
+. "$REL_VSN_DIR/env.sh"
+
+export RELEASE_COOKIE="${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}"
+export RELEASE_NODE="${RELEASE_NODE:-"$RELEASE_NAME"}"
+export RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
+export RELEASE_VM_ARGS="${RELEASE_VM_ARGS:-"$REL_VSN_DIR/vm.args"}"
+export RELEASE_DISTRIBUTION="${RELEASE_DISTRIBUTION:-"sname"}"
+export RELEASE_BOOT_SCRIPT="${RELEASE_BOOT_SCRIPT:-"start"}"
+
+rand () {
+  dd count=1 bs=2 if=/dev/urandom 2> /dev/null | od -x | awk 'NR==1{print $2}'
+}
+
+release_distribution () {
+  case $RELEASE_DISTRIBUTION in
+    none)
+      ;;
+
+    name | sname)
+      echo "--$RELEASE_DISTRIBUTION $1"
+      ;;
+
+    *)
+      echo "ERROR: Expected sname, name, or none in RELEASE_DISTRIBUTION, got: $RELEASE_DISTRIBUTION" >&2
+      exit 1
+      ;;
+  esac
+}
+
+start () {
+  export_release_sys_config
+  REL_EXEC="$1"
+  shift
+  exec "$REL_VSN_DIR/$REL_EXEC" \
+       --cookie "$RELEASE_COOKIE" \
+       $(release_distribution "$RELEASE_NODE") \
+       --erl "-mode $RELEASE_MODE" \
+       --erl-config "$RELEASE_SYS_CONFIG" \
+       --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT" \
+       --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
+       --vm-args "$RELEASE_VM_ARGS" "$@"
+}
+
+export_release_sys_config () {
+  DEFAULT_SYS_CONFIG="${RELEASE_SYS_CONFIG:-"$REL_VSN_DIR/sys"}"
+
+  if grep -q "RUNTIME_CONFIG=true" "$DEFAULT_SYS_CONFIG.config"; then
+    RELEASE_SYS_CONFIG="$RELEASE_TMP/$RELEASE_NAME-$RELEASE_VSN-$(date +%Y%m%d%H%M%S)-$(rand).runtime"
+
+    (mkdir -p "$RELEASE_TMP" && cat "$DEFAULT_SYS_CONFIG.config" >"$RELEASE_SYS_CONFIG.config") || (
+      echo "ERROR: Cannot start release because it could not write $RELEASE_SYS_CONFIG.config" >&2
+      exit 1
+    )
+  else
+    RELEASE_SYS_CONFIG="$DEFAULT_SYS_CONFIG"
+  fi
+
+  export RELEASE_SYS_CONFIG
+}
+
+start "elixir" --no-halt -- $@
