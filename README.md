@@ -104,7 +104,6 @@ You must have the following installed and in your PATH:
 * Zig (master/nightly - we do not support 0.8.0) -- `zig`
 * Gzip -- `gzip`
 * 7z -- `7z`
-* GNU Patch -- `patch`
 
 ----
 
