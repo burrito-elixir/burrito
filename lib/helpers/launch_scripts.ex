@@ -1,35 +1,51 @@
-defmodule Burrito.Helpers.LauncScripts do
+defmodule Burrito.Helpers.LaunchScripts do
   require Logger
 
   def copy_launch_scripts(self_path, release_path, release_name) do
-    Logger.info("Copying Burrito startup scripts for release...")
+    release_name = to_string(release_name)
+    src_dir = scripts_dir(self_path)
+    scripts = launch_scripts(release_path, release_name)
 
-    # Copy over the app startup scripts for all platforms
-    shell_path = Path.join(self_path, ["/src", "/scripts", "/posix_start.sh"])
-    bat_path = Path.join(self_path, ["/src", "/scripts", "/win_start.bat"])
+    compile_context = [
+      release_name: release_name
+    ]
 
-    bin_path = Path.join(release_path, ["/bin"])
-    dest_shell_path = Path.join(bin_path, ["/#{release_name}"])
-    dest_bat_path = Path.join(bin_path, ["/#{release_name}.bat"])
+    for {src_name, dest_dir, dest_name} <- scripts do
+      src_path = Path.join(src_dir, src_name)
+      dest_path = Path.join(dest_dir, dest_name)
 
-    File.copy!(shell_path, dest_shell_path)
-    File.copy!(bat_path, dest_bat_path)
+      src_text = EEx.eval_file(src_path, compile_context)
 
-    File.chmod!(dest_shell_path, 0o744)
+      File.write!(dest_path, src_text)
+      File.chmod!(dest_path, 0o744)
+    end
+  end
 
-    # Copy over POSIX "erl" and "start" scripts into the ERTS bin directory
+  defp launch_scripts(release_path, release_name) do
+    bins_dir = bins_dir(release_path)
+    erts_dir = erts_dir(release_path)
 
-    dst_bin_path = Path.join(release_path, "erts-*/bin") |> Path.wildcard() |> List.first()
+    # Each script is a tuple of {src_name, dest_dir, dest_name}
+    [
+      {"posix_start.sh.eex", bins_dir, release_name},
+      {"win_start.bat.eex", bins_dir, release_name <> ".bat"},
+      {"posix_erl.sh.eex", erts_dir, "erl"},
+      {"posix_erts_start.sh.eex", erts_dir, "start"}
+    ]
+  end
 
-    erl_script_path = Path.join(self_path, ["/src", "/scripts", "/posix_erl.sh"])
-    start_script_path = Path.join(self_path, ["/src", "/scripts", "/posix_erts_start.sh"])
+  defp scripts_dir(release_path) do
+    Path.join(release_path, "src/scripts")
+  end
 
-    erl_launch_dest_path = Path.join(dst_bin_path, "erl")
-    File.copy!(erl_script_path, erl_launch_dest_path)
-    File.chmod!(erl_launch_dest_path, 0o744)
+  defp bins_dir(release_path) do
+    Path.join(release_path, "bin")
+  end
 
-    start_launch_dest_path = Path.join(dst_bin_path, "start")
-    File.copy!(start_script_path, start_launch_dest_path)
-    File.chmod!(start_launch_dest_path, 0o744)
+  defp erts_dir(release_path) do
+    release_path
+    |> Path.join("erts-*/bin")
+    |> Path.wildcard()
+    |> hd()
   end
 end

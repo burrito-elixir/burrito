@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 set RELEASE_ROOT=%~dp0\..
 
-if not defined RELEASE_NAME (set RELEASE_NAME=example_cli_app)
+if not defined RELEASE_NAME (set RELEASE_NAME=<%= release_name %>)
 if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in ('type "!RELEASE_ROOT!\releases\start_erl.data"') do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
 if not defined RELEASE_MODE (set RELEASE_MODE=embedded)
 
@@ -28,7 +28,7 @@ if not "!REL_GOTO!" == "" (
     mkdir "!RELEASE_TMP!" >nul 2>&1
     copy /y "!DEFAULT_SYS_CONFIG!.config" "!RELEASE_SYS_CONFIG!.config" >nul || (
       echo Cannot start release because it could not write to "!RELEASE_SYS_CONFIG!.config"
-      goto end
+      exit /b
     )
   )
 

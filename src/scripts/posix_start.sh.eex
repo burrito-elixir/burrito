@@ -5,7 +5,7 @@ SELF=$(readlink "$0" || true)
 if [ -z "$SELF" ]; then SELF="$0"; fi
 RELEASE_ROOT="$(CDPATH='' cd "$(dirname "$SELF")/.." && pwd -P)"
 export RELEASE_ROOT
-export RELEASE_NAME="${RELEASE_NAME:-"example_cli_app"}"
+export RELEASE_NAME="<%= release_name %>"
 export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
 export RELEASE_COMMAND="$1"
 export RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
