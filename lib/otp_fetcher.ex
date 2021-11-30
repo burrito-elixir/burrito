@@ -1,6 +1,8 @@
 defmodule Burrito.OTPFetcher do
   require Logger
 
+  alias Burrito.Util.FileCache
+
   @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases?per_page=100"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases?per_page=100"
 
@@ -21,10 +23,19 @@ defmodule Burrito.OTPFetcher do
 
     {_, download_url} = selected_version
 
-    Logger.info("Downloading replacement ERTS: #{download_url}")
+    cache_key = :crypto.hash(:sha, to_string(erts_version) <> to_string(otp_version) <> to_string(platform)) |> Base.encode16()
 
-    data = Req.get!(download_url).body
-    do_unpack(data, release_path, erts_version, platform)
+    case FileCache.fetch(cache_key) do
+      {:hit, data} ->
+        Logger.info("Found matching cached ERTS, using that")
+        do_unpack(data, release_path, erts_version, platform)
+      {:miss, _} ->
+        Logger.info("Downloading replacement ERTS: #{download_url}")
+        data = Req.get!(download_url).body
+
+        FileCache.put_if_not_exist(cache_key, data)
+        Logger.info("Cached this ERTS with key: #{cache_key}")
+    end
   end
 
   def get_otp_versions(platform) do
