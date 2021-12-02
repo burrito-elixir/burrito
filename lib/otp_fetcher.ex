@@ -4,34 +4,6 @@ defmodule Burrito.OTPFetcher do
   @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases?per_page=100"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases?per_page=100"
 
-  @erl_launch_script """
-  #!/bin/sh
-  SELF=$(readlink "$0" || true)
-  if [ -z "$SELF" ]; then SELF="$0"; fi
-  BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
-  ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
-  EMU=beam
-  PROGNAME=$(echo "$0" | sed 's/.*\\///')
-  export EMU
-  export ROOTDIR
-  export BINDIR
-  export PROGNAME
-  exec "$BINDIR/erlexec" ${1+"$@"}
-  """
-
-  @start_script """
-  ROOTDIR="$ERL_ROOTDIR"
-
-  if [ -z "$RELDIR" ]
-  then
-     RELDIR=$ROOTDIR/releases
-  fi
-
-  START_ERL_DATA=${1:-$RELDIR/start_erl.data}
-
-  $ROOTDIR/bin/run_erl -daemon /tmp/ $ROOTDIR/log "exec $ROOTDIR/bin/start_erl $ROOTDIR $RELDIR $START_ERL_DATA"
-  """
-
   def download_and_replace_erts_release(erts_version, otp_version, release_path, platform) do
     versions = get_otp_versions(platform)
 
@@ -178,14 +150,6 @@ defmodule Burrito.OTPFetcher do
     src_bin_path = Path.join(extraction_path, "erts-*/bin") |> Path.wildcard() |> List.first()
     File.cp_r!(src_bin_path, dst_bin_path)
 
-    erl_launch_path = Path.join(dst_bin_path, "erl")
-    File.write!(erl_launch_path, @erl_launch_script)
-    File.chmod!(erl_launch_path, 0o744)
-
-    start_launch_path = Path.join(dst_bin_path, "start")
-    File.write!(start_launch_path, @start_script)
-    File.chmod!(start_launch_path, 0o744)
-
     # The ERTS comes with some pre-built NIFs, so we need to replace those .so files with a MacOS .so
     # Glob up all the .so files in the release
     so_files = Path.join(release_path, "lib/**/*.{so,dll}") |> Path.wildcard()
@@ -235,14 +199,6 @@ defmodule Burrito.OTPFetcher do
 
     src_bin_path = Path.join(extraction_path, "erts-*/bin") |> Path.wildcard() |> List.first()
     File.cp_r!(src_bin_path, dst_bin_path)
-
-    erl_launch_path = Path.join(dst_bin_path, "erl")
-    File.write!(erl_launch_path, @erl_launch_script)
-    File.chmod!(erl_launch_path, 0o744)
-
-    start_launch_path = Path.join(dst_bin_path, "start")
-    File.write!(start_launch_path, @start_script)
-    File.chmod!(start_launch_path, 0o744)
 
     # The ERTS comes with some pre-built NIFs, so we need to replace those .so files with a linux .so
     # Glob up all the .so files in the release

@@ -123,8 +123,8 @@ defmodule Burrito do
       |> List.delete_at(-1)
       |> Path.join()
 
-    # patch up scripts for booting up the app so we can accept CLI flags
-    Helpers.PatchStartupScripts.run(self_path, release_working_path, release.name)
+    # Copy in our launch scripts
+    Helpers.LaunchScripts.copy_launch_scripts(self_path, release_working_path, release.name)
 
     zig_build_args = []
 
