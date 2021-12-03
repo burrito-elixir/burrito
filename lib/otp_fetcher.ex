@@ -13,31 +13,36 @@ defmodule Burrito.OTPFetcher do
       {:hit, data} ->
         Logger.info("Found matching cached ERTS, using that")
         do_unpack(data, release_path, erts_version, platform)
-      :miss ->
-        versions = get_otp_versions(platform)
-
-        selected_version =
-          Enum.find(versions, fn {v, download_url} -> v == otp_version && download_url != nil end)
-
-        # exit if we cannot download that version
-        if selected_version == nil do
-          Logger.error(
-            "Sorry! We cannot fetch the requested OTP version (OTP-#{otp_version}) for platform #{inspect(platform)} as it's not available in [burrito-elixir/erlang-builder] or [otp/releases]"
-          )
-
-          exit(1)
-        end
-
-        {_, download_url} = selected_version
-
-        Logger.info("Downloading replacement ERTS: #{download_url}")
-        data = Req.get!(download_url).body
-
-        FileCache.put_if_not_exist(cache_key, data)
-        Logger.info("Cached this ERTS with key: #{cache_key}")
-
-        do_unpack(data, release_path, erts_version, platform)
+      _ ->
+        do_download(erts_version, otp_version, release_path, platform)
     end
+  end
+
+  defp do_download(erts_version, otp_version, release_path, platform) do
+    versions = get_otp_versions(platform)
+
+    selected_version =
+      Enum.find(versions, fn {v, download_url} -> v == otp_version && download_url != nil end)
+
+    # exit if we cannot download that version
+    if selected_version == nil do
+      Logger.error(
+        "Sorry! We cannot fetch the requested OTP version (OTP-#{otp_version}) for platform #{inspect(platform)} as it's not available in [burrito-elixir/erlang-builder] or [otp/releases]"
+      )
+
+      exit(1)
+    end
+
+    cache_key = :crypto.hash(:sha, to_string(erts_version) <> to_string(otp_version) <> to_string(platform)) |> Base.encode16()
+
+    {_, download_url} = selected_version
+
+    Logger.info("Downloading replacement ERTS: #{download_url}")
+    data = Req.get!(download_url).body
+
+    FileCache.put_if_not_exist(cache_key, data)
+
+    do_unpack(data, release_path, erts_version, platform)
   end
 
   def get_otp_versions(platform) do
