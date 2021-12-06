@@ -35,7 +35,7 @@ pub const RELEASE_METADATA_JSON = @embedFile("../_metadata.json");
 
 // Memory allocator
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-var allocator = &arena.allocator;
+var allocator = arena.allocator();
 
 // Windows cmd argument parser
 const windows = std.os.windows;
@@ -67,7 +67,7 @@ pub fn main() anyerror!void {
         if (err == error.FileNotFound) {
             needs_install = true;
         } else {
-            log.crit("We failed to open the destination directory with an unexpected error: {s}", .{err});
+            log.err("We failed to open the destination directory with an unexpected error: {s}", .{err});
             return;
         }
     };

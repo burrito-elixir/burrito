@@ -49,7 +49,8 @@ pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_pa
     std.log.debug("Going to clean up older versions of this application...", .{});
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const allocator = &arena.allocator;
+    defer arena.deinit();
+    const allocator = arena.allocator();
 
     const prefix_dir = try std.fs.openDirAbsolute(install_prefix_path, .{ .iterate = true, .access_sub_paths = true });
 
@@ -78,6 +79,4 @@ pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_pa
             }
         }
     }
-
-    arena.deinit();
 }
