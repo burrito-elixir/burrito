@@ -43,7 +43,8 @@ const MAX_READ_SIZE = 1000000000;
 
 pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const a = &arena.allocator;
+    defer arena.deinit();
+    const allocator = arena.allocator();
 
     // Open a file for the archive
     _ = try fs.cwd().createFile(archive_path, .{ .truncate = true });
@@ -51,7 +52,7 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
     const foilz_writer = fs.File.writer(arch_file);
 
     var dir = try fs.openDirAbsolute(path, .{ .iterate = true });
-    var walker = try dir.walk(a);
+    var walker = try dir.walk(allocator);
 
     var count: u32 = 0;
 
@@ -76,10 +77,10 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
             // Allocate memory for the file
             var file_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
             defer file_arena.deinit();
-            var allocator = &file_arena.allocator;
+            var file_allocator = file_arena.allocator();
 
             // Read the file
-            const file_buffer = try file.readToEndAlloc(allocator, MAX_READ_SIZE);
+            const file_buffer = try file.readToEndAlloc(file_allocator, MAX_READ_SIZE);
             const stat = try file.stat();
 
             // Write file record to archive
@@ -97,7 +98,6 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
 
     // Clean up memory
     walker.deinit();
-    arena.deinit();
 
     // Close the archive file
     try write_magic_number(&foilz_writer);
@@ -125,7 +125,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8) !void {
     // Decompress the data in the payload
     var decompress_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer decompress_arena.deinit();
-    var allocator = &decompress_arena.allocator;
+    var allocator = decompress_arena.allocator();
 
     var stream = std.io.fixedBufferStream(data);
     var gzip_stream = try gzip.gzipStream(allocator, stream.reader());
@@ -199,7 +199,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8) !void {
     log.debug("Unpacked {} files", .{file_count});
 }
 
-fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: *std.mem.Allocator) !void {
+fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: std.mem.Allocator) !void {
     var iterator = mem.split(u8, sub_dir_names, "/");
     var full_dir_path = try fs.path.join(allocator, &[_][]const u8{ dest_path, "" });
 

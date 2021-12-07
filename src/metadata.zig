@@ -9,7 +9,7 @@ pub const MetaStruct = struct {
     erts_version: []const u8 = undefined,
 };
 
-pub fn parse(allocator: *std.mem.Allocator, string_data: []const u8) ?MetaStruct {
+pub fn parse(allocator: std.mem.Allocator, string_data: []const u8) ?MetaStruct {
     const options = .{ .allocator = allocator };
     var token_stream = std.json.TokenStream.init(string_data);
     const metadata_parsed = std.json.parse(MetaStruct, &token_stream, options) catch |e| {
