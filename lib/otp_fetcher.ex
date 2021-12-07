@@ -1,16 +1,30 @@
 defmodule Burrito.OTPFetcher do
   require Logger
 
+  alias Burrito.Util.FileCache
+
   @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases?per_page=100"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases?per_page=100"
 
   def download_and_replace_erts_release(erts_version, otp_version, release_path, platform) do
+    cache_key = :crypto.hash(:sha, to_string(erts_version) <> to_string(otp_version) <> to_string(platform)) |> Base.encode16()
+
+    case FileCache.fetch(cache_key) do
+      {:hit, data} ->
+        Logger.info("Found matching cached ERTS, using that")
+        do_unpack(data, release_path, erts_version, platform)
+      _ ->
+        do_download(erts_version, otp_version, release_path, platform)
+    end
+  end
+
+  defp do_download(erts_version, otp_version, release_path, platform) do
     versions = get_otp_versions(platform)
 
     selected_version =
       Enum.find(versions, fn {v, download_url} -> v == otp_version && download_url != nil end)
 
-    # die if we cannot download that version
+    # exit if we cannot download that version
     if selected_version == nil do
       Logger.error(
         "Sorry! We cannot fetch the requested OTP version (OTP-#{otp_version}) for platform #{inspect(platform)} as it's not available in [burrito-elixir/erlang-builder] or [otp/releases]"
@@ -19,11 +33,15 @@ defmodule Burrito.OTPFetcher do
       exit(1)
     end
 
+    cache_key = :crypto.hash(:sha, to_string(erts_version) <> to_string(otp_version) <> to_string(platform)) |> Base.encode16()
+
     {_, download_url} = selected_version
 
     Logger.info("Downloading replacement ERTS: #{download_url}")
-
     data = Req.get!(download_url).body
+
+    FileCache.put_if_not_exist(cache_key, data)
+
     do_unpack(data, release_path, erts_version, platform)
   end
 
