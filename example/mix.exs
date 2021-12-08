@@ -17,7 +17,10 @@ defmodule ExampleCliApp.MixProject do
     example_cli_app: [
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
-        targets: [:darwin, :win64, :linux, :linux_musl],
+        targets: [{:darwin, :x86_64}, {:linux, :x86_64}, {:linux, :x86_64, :musl}, {:windows, :x86_64}],
+        local_erts: %{
+          {:linux, :aarch64, :musl} => "/my/local/erts.tar.gz" # this isn't used, just an example!
+        },
         debug: Mix.env() != :prod,
         plugin: "./test_plugin/plugin.zig",
         no_clean: false,

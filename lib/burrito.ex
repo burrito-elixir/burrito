@@ -13,55 +13,23 @@ defmodule Burrito do
 
   @spec wrap(Mix.Release.t()) :: Mix.Release.t()
   def wrap(%Mix.Release{} = release) do
-    options = release.options[:burrito] || []
-    targets = Keyword.get(options, :targets, [:native])
-    debug? = Keyword.get(options, :debug, false)
-    no_clean? = Keyword.get(options, :no_clean, false)
-
-    override_targets = maybe_get_override_targets()
-
-    targets =
-      if override_targets != [] do
-        Logger.info("Override targets: #{inspect(override_targets)}")
-        override_targets
-      else
-        targets
-      end
-
-    plugin = Keyword.get(options, :plugin, nil)
-
-    current_system = get_current_os()
-
-    {:ok, _} = Application.ensure_all_started(:req)
-
-    Enum.each(targets, fn target ->
-      if target in @supported_targets do
-        # if we're building for the current host system, use a :native target
-        if current_system == target do
-          do_wrap(release, :native, plugin, no_clean?, debug?)
-        else
-          do_wrap(release, target, plugin, no_clean?, debug?)
-        end
-      else
-        raise_unsupported_target(target)
-      end
-    end)
+    Burrito.Builder.build(release)
 
     release
   end
 
-  defp maybe_get_override_targets do
-    System.get_env("BURRITO_TARGET", "")
-    |> String.split(",", trim: true)
-    |> Enum.map(&String.trim/1)
-    |> Enum.map(fn target ->
-      if target in @supported_target_strings do
-        String.to_existing_atom(target)
-      else
-        raise_unsupported_target(target)
-      end
-    end)
-  end
+  # defp maybe_get_override_targets do
+  #   System.get_env("BURRITO_TARGET", "")
+  #   |> String.split(",", trim: true)
+  #   |> Enum.map(&String.trim/1)
+  #   |> Enum.map(fn target ->
+  #     if target in @supported_target_strings do
+  #       String.to_existing_atom(target)
+  #     else
+  #       raise_unsupported_target(target)
+  #     end
+  #   end)
+  # end
 
   defp raise_unsupported_target(target) do
     Logger.error(
