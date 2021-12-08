@@ -33,8 +33,8 @@ defmodule Burrito.Steps.Fetch.InitBuild do
 
     if cross_build do
       case check_erts_builds(context) do
-        {:ok, path} ->
-          %Context{context | cross_build: true, erts_location: path}
+        {:ok, location_info} ->
+          %Context{context | cross_build: true, erts_location: location_info}
 
         _ ->
           %Context{
@@ -47,7 +47,8 @@ defmodule Burrito.Steps.Fetch.InitBuild do
           }
       end
     else
-      %Context{context | cross_build: false, erts_location: :local}
+      # we're not going to do any replacements
+      %Context{context | cross_build: false, erts_location: {:release, nil}}
     end
   end
 
@@ -59,7 +60,7 @@ defmodule Burrito.Steps.Fetch.InitBuild do
       :error
     else
       if Map.has_key?(custom_erts_defs, tuple) do
-        {:ok, custom_erts_defs[tuple]}
+        {:ok, {:local, custom_erts_defs[tuple]}}
       else
         {:ok, get_otp_url(context.target)}
       end
@@ -98,6 +99,6 @@ defmodule Burrito.Steps.Fetch.InitBuild do
 
     {_, url} = Enum.find(versions, fn {v, download_url} -> v == target.otp_version && download_url != nil end)
 
-    url
+    {:url, url}
   end
 end

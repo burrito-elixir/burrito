@@ -3,9 +3,11 @@ defmodule Burrito.Builder.Context do
 
   alias Burrito.Builder.Target
 
+  @type erts_location :: nil | {:release | :local | :url | :unpacked, term()}
+
   typedstruct do
     field :target, Target.t(), enforce: true
-    field :erts_location, String.t() | :local, enforce: true
+    field :erts_location, erts_location() , enforce: true
     field :cross_build, boolean, enforce: true
     field :mix_release, Mix.Release.t(), enforce: true
     field :work_dir, String.t(), enforce: true

@@ -1,7 +1,9 @@
 defmodule Burrito.Builder do
   alias Burrito.Builder.Context
   alias Burrito.Builder.Target
+
   alias Burrito.Steps.Fetch
+  alias Burrito.Steps.Patch
 
   require Logger
 
@@ -17,7 +19,7 @@ defmodule Burrito.Builder do
 
   You can add your own steps before and after phases execute. Your custom steps will also receive the build context struct, and can return a modified one to customize a build to your liking.
 
-  An example of added a step before the fetch phase, and after the build phase:
+  An example of adding a step before the fetch phase, and after the build phase:
 
   ```
   # ... mix.exs file
@@ -41,7 +43,7 @@ defmodule Burrito.Builder do
 
   @phases [
     fetch: [Fetch.InitBuild, Fetch.FetchERTS],
-    patch: [],
+    patch: [Patch.CopyERTS, Patch.CopyScripts],
     archive: [],
     build: []
   ]
@@ -50,33 +52,33 @@ defmodule Burrito.Builder do
     options = release.options[:burrito] || []
     debug? = Keyword.get(options, :debug, false)
 
-    # TODO: make this loop over targets instead of picking the first one
-    # this is currently for debugging reasons!
-    build_target = options[:targets] |> List.first()
+    build_targets = options[:targets]
 
-    target = Target.init_target(build_target, debug?)
-    self_path =
-      __ENV__.file
-      |> Path.dirname()
-      |> Path.split() # current directory: (burrito/lib/build/)
-      |> List.delete_at(-1) # ../
-      |> List.delete_at(-1) # ../
-      |> Path.join() # result directory: burrito/
+    Enum.each(build_targets, fn t ->
+      target = Target.init_target(t, debug?)
+      self_path =
+        __ENV__.file
+        |> Path.dirname()
+        |> Path.split() # current directory: (burrito/lib/build/)
+        |> List.delete_at(-1) # ../
+        |> List.delete_at(-1) # ../
+        |> Path.join() # result directory: burrito/
 
-    initial_context = %Context{
-      target: target,
-      erts_location: :local,
-      cross_build: false,
-      mix_release: release,
-      work_dir: self_path,
-      warnings: [],
-      errors: [],
-      halt: false
-    }
+      initial_context = %Context{
+        target: target,
+        erts_location: :local,
+        cross_build: false,
+        mix_release: release,
+        work_dir: self_path,
+        warnings: [],
+        errors: [],
+        halt: false
+      }
 
-    Logger.info("Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tLibC: #{target.libc}\n\tDebug: #{target.debug?}")
+      Logger.info("Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tLibC: #{target.libc}\n\tDebug: #{target.debug?}")
 
-    Enum.reduce(@phases, initial_context, &run_phase/2)
+      Enum.reduce(@phases, initial_context, &run_phase/2)
+    end)
   end
 
   defp run_phase({phase_name, mod_list}, %Context{} = context) do
