@@ -1,6 +1,6 @@
 defmodule Burrito.Steps.Fetch.FetchERTS do
   @moduledoc """
-  This step will copy/unpack/download a replacement ERTS for use later in the build flow
+  This step will copy/download and unpack a replacement ERTS for use later in the build flow.
   """
 
   alias Burrito.Util.FileCache
@@ -58,8 +58,8 @@ defmodule Burrito.Steps.Fetch.FetchERTS do
 
     # we use 7z to unpack windows setup files, otherwise we use tar
     command = case target.os do
-      :windows -> ~c"7z x #{tar_dest_path} -o#{extraction_path}"
-      _ -> ~c"tar xzf #{tar_dest_path} -C #{extraction_path}" |> :os.cmd()
+      :windows -> ~c"7z x #{tar_dest_path} -o#{extraction_path}/otp-windows/"
+      _ -> ~c"tar xzf #{tar_dest_path} -C #{extraction_path}"
     end
 
     :os.cmd(command)

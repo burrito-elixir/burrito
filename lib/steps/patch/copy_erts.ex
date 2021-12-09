@@ -1,4 +1,7 @@
 defmodule Burrito.Steps.Patch.CopyERTS do
+  @moduledoc """
+  This step copies the new ERTS bins into the release, as well as replaces built-in NIFs.
+  """
   alias Burrito.Builder.Context
   alias Burrito.Builder.Step
 
@@ -25,9 +28,6 @@ defmodule Burrito.Steps.Patch.CopyERTS do
     # Clean out current bins
     dest_bin_path = Path.join(context.work_dir, ["erts-*/", "bin/"]) |> Path.wildcard() |> List.first()
 
-    require IEx
-    IEx.pry()
-
     File.rm_rf!(dest_bin_path)
     File.mkdir!(dest_bin_path)
 
@@ -43,9 +43,14 @@ defmodule Burrito.Steps.Patch.CopyERTS do
     dest_lib_path = Path.join(context.work_dir, ["lib/"])
 
     Enum.each(libs_to_replace, fn lib_file ->
+      # This replaces the .so or .dll with a wildcard match of .so or .dll
+      # that way it's more generic across ERTS targets (windows, linux, darwin, etc.)
       possible_src_path = String.replace(lib_file, dest_lib_path, src_lib_path)
+      |> String.replace_suffix(Path.extname(lib_file), "*.{so,dll}")
+      |> Path.wildcard()
+      |> List.first()
 
-      if File.exists?(possible_src_path) do
+      if possible_src_path && File.exists?(possible_src_path) do
         File.rm!(lib_file)
         File.copy!(possible_src_path, lib_file)
         Logger.info("Replaced NIF #{lib_file} -> #{possible_src_path}")
@@ -54,8 +59,5 @@ defmodule Burrito.Steps.Patch.CopyERTS do
         Logger.warn("We couldn't find a replacement for NIF #{lib_file}, the binary may not work!")
       end
     end)
-
-    require IEx
-    IEx.pry()
   end
 end
