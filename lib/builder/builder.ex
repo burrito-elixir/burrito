@@ -2,6 +2,7 @@ defmodule Burrito.Builder do
   alias Burrito.Builder.Context
   alias Burrito.Builder.Target
 
+  alias Burrito.Steps.Build
   alias Burrito.Steps.Fetch
   alias Burrito.Steps.Patch
 
@@ -10,12 +11,11 @@ defmodule Burrito.Builder do
   @moduledoc """
   Burrito builds in "phases". Each phase contains any number of "steps" which are executed one after another.
 
-  There are 4 phases:
+  There are 3 phases:
 
   `:fetch` - This phase is responsible for downloading or copying in any replacement ERTS builds for cross-build targets.
   `:patch` - The patch phase injects custom scripts into the build directory, this phase is also where any custom files should be copied into the build directory before being archived.
-  `:archive` - Once the archive phase is finished, all files in the release build directory will be packaged into a foilz archive.
-  `:build` - This is the final phase in the build flow, it produces the final wrapper binary with the payload embedded inside.
+  `:build` - This is the final phase in the build flow, it produces the final wrapper binary with a payload embedded inside.
 
   You can add your own steps before and after phases execute. Your custom steps will also receive the build context struct, and can return a modified one to customize a build to your liking.
 
@@ -43,9 +43,8 @@ defmodule Burrito.Builder do
 
   @phases [
     fetch: [Fetch.InitBuild, Fetch.FetchERTS],
-    patch: [Patch.CopyERTS, Patch.CopyScripts],
-    archive: [],
-    build: []
+    patch: [Patch.CopyERTS, Patch.CopyScripts, Patch.RecompileNIFs],
+    build: [Build.PackAndBuild, Build.CopyRelease]
   ]
 
   def build(%Mix.Release{} = release) do
@@ -69,7 +68,7 @@ defmodule Burrito.Builder do
         erts_location: :local,
         cross_build: false,
         mix_release: release,
-        work_dir: nil,
+        work_dir: "",
         self_dir: self_path,
         warnings: [],
         errors: [],

@@ -40,7 +40,7 @@ defmodule Burrito.Util do
 
   @spec get_otp_version :: String.t()
   def get_otp_version() do
-    {:ok, opt_verson} =
+    {:ok, opt_version} =
       :file.read_file(
         :filename.join([
           :code.root_dir(),
@@ -50,6 +50,6 @@ defmodule Burrito.Util do
         ])
       )
 
-    String.trim(opt_verson)
+    String.trim(opt_version)
   end
 end
