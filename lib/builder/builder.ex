@@ -69,7 +69,8 @@ defmodule Burrito.Builder do
         erts_location: :local,
         cross_build: false,
         mix_release: release,
-        work_dir: self_path,
+        work_dir: nil,
+        self_dir: self_path,
         warnings: [],
         errors: [],
         halt: false

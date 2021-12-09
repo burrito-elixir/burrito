@@ -27,6 +27,10 @@ defmodule Burrito.Steps.Fetch.InitBuild do
   def execute(%Context{} = context) do
     {:ok, _} = Application.ensure_all_started(:req)
 
+    random_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
+    work_dir = System.tmp_dir!() |> Path.join(["burrito_build_#{random_id}"])
+    File.cp_r(context.mix_release.path, work_dir, fn _, _ -> true end)
+
     cross_build =
       context.target.os != Util.get_current_os() || context.target.cpu != Util.get_current_cpu() ||
         context.target.libc != Util.get_libc_type()
@@ -34,13 +38,14 @@ defmodule Burrito.Steps.Fetch.InitBuild do
     if cross_build do
       case check_erts_builds(context) do
         {:ok, location_info} ->
-          %Context{context | cross_build: true, erts_location: location_info}
+          %Context{context | cross_build: true, erts_location: location_info, work_dir: work_dir}
 
         _ ->
           %Context{
             context
             | cross_build: true,
               halt: true,
+              work_dir: work_dir,
               errors: [
                 "We do not have a pre-compiled ERTS release for the target requested, and you have not specified a matching custom ERTS release in your mix.exs file!"
               ]
@@ -48,7 +53,7 @@ defmodule Burrito.Steps.Fetch.InitBuild do
       end
     else
       # we're not going to do any replacements
-      %Context{context | cross_build: false, erts_location: {:release, nil}}
+      %Context{context | cross_build: false, erts_location: {:release, nil}, work_dir: work_dir}
     end
   end
 
