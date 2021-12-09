@@ -39,6 +39,7 @@ docgen_tmp/
 *.exe
 *.pdb
 payload.foilz*
+_metadata.json
 
 ### Elixir ###
 /_build

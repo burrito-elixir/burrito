@@ -39,7 +39,7 @@ defmodule ExampleCliApp.MixProject do
   defp deps do
     [
       {:burrito, path: "../"},
-      # {:ex_termbox, "~> 1.0"},
+      {:ex_termbox, "~> 1.0"},
     ]
   end
 end

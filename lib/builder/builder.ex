@@ -52,6 +52,22 @@ defmodule Burrito.Builder do
 
     build_targets = options[:targets]
 
+    # look for override target in system env
+    # if it's a valid target, set it as the only target
+    target_override_string = System.get_env("BURRITO_TARGET")
+
+    build_targets = if target_override_string do
+      Log.warning(:build, "Target is being overridden with BURRITO_TARGET #{target_override_string}")
+      override = Target.string_to_tuple(target_override_string)
+      if override == :error do
+
+      else
+        [override]
+      end
+    else
+      build_targets
+    end
+
     Enum.each(build_targets, fn t ->
       target = Target.init_target(t, debug?)
       self_path =
