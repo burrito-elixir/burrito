@@ -4,6 +4,7 @@ defmodule Burrito.Steps.Fetch.InitBuild do
   If it determines we are cross-building, it will check to ensure an ERTS build is available for the target.
   """
   alias Burrito.Builder.Context
+  alias Burrito.Builder.Log
   alias Burrito.Builder.Target
   alias Burrito.Builder.Step
   alias Burrito.Util
@@ -41,14 +42,12 @@ defmodule Burrito.Steps.Fetch.InitBuild do
           %Context{context | cross_build: true, erts_location: location_info, work_dir: work_dir}
 
         _ ->
+          Log.error(:step, "We do not have a pre-compiled ERTS release for the target requested, and you have not specified a matching custom ERTS release in your mix.exs file!")
           %Context{
             context
             | cross_build: true,
               halt: true,
               work_dir: work_dir,
-              errors: [
-                "We do not have a pre-compiled ERTS release for the target requested, and you have not specified a matching custom ERTS release in your mix.exs file!"
-              ]
           }
       end
     else

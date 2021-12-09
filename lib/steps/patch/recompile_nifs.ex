@@ -1,9 +1,8 @@
 defmodule Burrito.Steps.Patch.RecompileNIFs do
   alias Burrito.Builder.Context
+  alias Burrito.Builder.Log
   alias Burrito.Builder.Step
   alias Burrito.Builder.Target
-
-  require Logger
 
   @behaviour Step
 
@@ -48,7 +47,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
   defp maybe_recompile_nif({dep, path, true}, release_working_path, erts_path, cross_target) do
     dep = Atom.to_string(dep)
 
-    Logger.info("Going to recompile NIF for cross-build: #{dep} -> #{cross_target}")
+    Log.info(:step, "Going to recompile NIF for cross-build: #{dep} -> #{cross_target}")
 
     _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
 
@@ -71,7 +70,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
     case build_result do
       {_, 0} ->
-        Logger.info("Successfully re-built #{dep} for #{cross_target}!")
+        Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
         src_priv_files = Path.join(path, ["priv/*"]) |> Path.wildcard()
 
@@ -82,14 +81,14 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
           file_name = Path.basename(file)
           dst_fullpath = Path.join(output_priv_dir, file_name)
 
-          Logger.info("#{file} -> #{output_priv_dir}")
+          Log.info(:step, "#{file} -> #{output_priv_dir}")
 
           File.copy!(file, dst_fullpath)
         end)
 
       {output, _} ->
-        Logger.error("Failed to rebuild #{dep} for #{cross_target}!")
-        Logger.error(output)
+        Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
+        Log.error(:step, output)
         exit(1)
     end
   end

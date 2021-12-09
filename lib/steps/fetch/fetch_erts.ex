@@ -6,10 +6,9 @@ defmodule Burrito.Steps.Fetch.FetchERTS do
   alias Burrito.Util.FileCache
 
   alias Burrito.Builder.Context
+  alias Burrito.Builder.Log
   alias Burrito.Builder.Step
   alias Burrito.Builder.Target
-
-  require Logger
 
   @behaviour Step
 
@@ -39,7 +38,7 @@ defmodule Burrito.Steps.Fetch.FetchERTS do
 
     case FileCache.fetch(cache_key) do
       {:hit, data} ->
-        Logger.info("Found matching cached ERTS, using that")
+        Log.info(:step, "Found matching cached ERTS, using that")
         do_unpack(data, target)
       _ ->
         do_download(tar_url, cache_key) |> do_unpack(target)
@@ -70,7 +69,7 @@ defmodule Burrito.Steps.Fetch.FetchERTS do
   end
 
   defp do_download(url, cache_key) do
-    Logger.debug("Downloading file: #{url}")
+    Log.info(:step, "Downloading file: #{url}")
     data = Req.get!(url).body
     FileCache.put_if_not_exist(cache_key, data)
     data

@@ -3,9 +3,8 @@ defmodule Burrito.Steps.Patch.CopyERTS do
   This step copies the new ERTS bins into the release, as well as replaces built-in NIFs.
   """
   alias Burrito.Builder.Context
+  alias Burrito.Builder.Log
   alias Burrito.Builder.Step
-
-  require Logger
 
   @behaviour Step
 
@@ -53,10 +52,10 @@ defmodule Burrito.Steps.Patch.CopyERTS do
       if possible_src_path && File.exists?(possible_src_path) do
         File.rm!(lib_file)
         File.copy!(possible_src_path, lib_file)
-        Logger.info("Replaced NIF #{lib_file} -> #{possible_src_path}")
+        Log.info(:step, "Replaced NIF \n\tOriginal: #{lib_file}\n\tReplacement: #{possible_src_path}")
       else
         File.rm!(lib_file)
-        Logger.warn("We couldn't find a replacement for NIF #{lib_file}, the binary may not work!")
+        Log.warning(:step, "We couldn't find a replacement for NIF\n\t#{lib_file}\n\tThe binary may not work!")
       end
     end)
   end

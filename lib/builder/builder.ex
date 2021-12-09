@@ -1,12 +1,11 @@
 defmodule Burrito.Builder do
   alias Burrito.Builder.Context
+  alias Burrito.Builder.Log
   alias Burrito.Builder.Target
 
   alias Burrito.Steps.Build
   alias Burrito.Steps.Fetch
   alias Burrito.Steps.Patch
-
-  require Logger
 
   @moduledoc """
   Burrito builds in "phases". Each phase contains any number of "steps" which are executed one after another.
@@ -75,40 +74,28 @@ defmodule Burrito.Builder do
         halt: false
       }
 
-      Logger.info("Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tLibC: #{target.libc}\n\tDebug: #{target.debug?}")
+      Log.info(:build, "Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tLibC: #{target.libc}\n\tDebug: #{target.debug?}")
 
       Enum.reduce(@phases, initial_context, &run_phase/2)
     end)
+
+    release
   end
 
   defp run_phase({phase_name, mod_list}, %Context{} = context) do
     # TODO: check for pre-phase steps
-    Logger.info("> PHASE: #{inspect(phase_name)}")
+    Log.info(:phase, "PHASE: #{inspect(phase_name)}")
     Enum.reduce(mod_list, context, fn mod, %Context{} = acc ->
-      Logger.info("\t> STEP: #{inspect(mod)}")
       %Context{} = new_context = mod.execute(acc)
-
-      # Print errors or warnings
-      Enum.each(new_context.warnings, &warn/1)
-      Enum.each(new_context.errors, &error/1)
 
       # Halt if `halt` flag was set
       if new_context.halt do
-        Logger.error("Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}")
+        Log.info(:build, "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}")
         exit(1)
       end
 
-      # reset errors and warnings
-      %Context{new_context | warnings: [], errors: []}
+      new_context
     end)
     # TODO: check for post-phase steps
-  end
-
-  defp warn(message) do
-    Logger.warn("\t> " <> message)
-  end
-
-  defp error(message) do
-    Logger.error("\t> " <> message)
   end
 end
