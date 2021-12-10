@@ -69,7 +69,7 @@ defmodule Burrito.Builder do
     end
 
     Enum.each(build_targets, fn t ->
-      target = Target.init_target(t, debug?)
+      target = Target.maybe_translate_old_target(t) |> Target.init_target(debug?)
       self_path =
         __ENV__.file
         |> Path.dirname()
@@ -106,7 +106,7 @@ defmodule Burrito.Builder do
 
       # Halt if `halt` flag was set
       if new_context.halt do
-        Log.info(:build, "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}")
+        Log.error(:build, "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}")
         exit(1)
       end
 

@@ -2,6 +2,7 @@ defmodule Burrito.Builder.Target do
   use TypedStruct
 
   alias __MODULE__
+  alias Burrito.Builder.Log
   alias Burrito.Util
 
   typedstruct do
@@ -52,6 +53,9 @@ defmodule Burrito.Builder.Target do
     parts = String.trim(string) |> String.downcase() |> String.split("-")
 
     case parts do
+      [maybe_old_target] ->
+        maybe_translate_old_target(String.to_existing_atom(maybe_old_target))
+
       [cpu, os] ->
         {String.to_existing_atom(os), String.to_existing_atom(cpu), :none}
 
@@ -65,6 +69,7 @@ defmodule Burrito.Builder.Target do
     _ -> :error
   end
 
+  @spec string_to_target(any) :: :error | Burrito.Builder.Target.t()
   def string_to_target(string) do
     tuple = string_to_tuple(string)
 
@@ -74,6 +79,20 @@ defmodule Burrito.Builder.Target do
       init_target(tuple, false)
     end
   end
+
+  @spec maybe_translate_old_target(:darwin | :linux | :linux_musl | :win64 | {any, any, any}) ::
+          {any, any, any}
+  def maybe_translate_old_target(old_target) when old_target in [:darwin, :win64, :linux, :linux_musl] do
+    Log.warning(:build, "You have specified an old-style build target, please move to using the newer format of build targets. See the Burrito README for examples.")
+    case old_target do
+      :darwin -> {:darwin, :x86_64, :none}
+      :win64 -> {:windows, :x86_64, :none}
+      :linux -> {:linux, :x86_64, :gnu}
+      :linux_musl -> {:linux, :x86_64, :musl}
+    end
+  end
+
+  def maybe_translate_old_target({_, _, _} = not_old_target), do: not_old_target
 
   # PONDER: is it ok to assume :gnu here?
   # maybe we should assume the host OS's libc instead (if they're running linux)
