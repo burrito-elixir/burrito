@@ -58,13 +58,13 @@ defmodule Burrito.Steps.Fetch.InitBuild do
 
   defp check_erts_builds(%Context{} = context) do
     tuple = {context.target.os, context.target.cpu, context.target.qualifiers[:libc]}
-    custom_erts_defs = context.mix_release.options[:burrito][:local_erts] || %{}
+    custom_erts_def = context.target.qualifiers[:local_erts]
 
-    if tuple not in @pre_compiled_supported_tuples && !Map.has_key?(custom_erts_defs, tuple) do
+    if tuple not in @pre_compiled_supported_tuples && !custom_erts_def do
       :error
     else
-      if Map.has_key?(custom_erts_defs, tuple) do
-        {:ok, {:local, custom_erts_defs[tuple]}}
+      if custom_erts_def do
+        {:ok, {:local, custom_erts_def}}
       else
         {:ok, get_otp_url(context.target)}
       end

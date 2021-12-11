@@ -42,14 +42,15 @@ defmodule Burrito.Steps.Build.PackAndBuild do
         into: IO.stream()
       )
 
-    if options[:no_clean] do
+    if !options[:no_clean] do
       clean_build(context.self_dir)
     end
 
     case build_result do
       {_, 0} -> context
       _ ->
-        %Context{context | halt: true, errors: ["Burrito failed to wrap up your app! Check the logs for more information."]}
+        Log.error(:step, "Burrito failed to wrap up your app! Check the logs for more information.")
+        exit(1)
     end
   end
 

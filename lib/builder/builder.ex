@@ -119,8 +119,6 @@ defmodule Burrito.Builder do
         mix_release: release,
         work_dir: "",
         self_dir: self_path,
-        warnings: [],
-        errors: [],
         halt: false
       }
 
