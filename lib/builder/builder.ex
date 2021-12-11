@@ -28,9 +28,10 @@ defmodule Burrito.Builder do
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
           # ... other Burrito configuration
-          steps: [
-            {:pre, :fetch, MyCustomStepModule},
-            {:post, :build, AnotherCustomStepModule}
+          extra_steps: [
+            fetch: [pre: [MyCustomStepModule, AnotherCustomStepModule]],
+            build: [post: [CustomStepAgain, YetAnotherCustomStepModule]]
+            # ...
           ]
         ]
       ]
@@ -94,8 +95,6 @@ defmodule Burrito.Builder do
         build_targets
       end
 
-    IO.inspect(build_targets)
-
     # Build every target
     Enum.each(build_targets, fn {name, t} ->
       target = Target.init_target(t, name, debug?)
@@ -103,13 +102,9 @@ defmodule Burrito.Builder do
       self_path =
         __ENV__.file
         |> Path.dirname()
-        # current directory: (burrito/lib/build/)
         |> Path.split()
-        # ../
         |> List.delete_at(-1)
-        # ../
         |> List.delete_at(-1)
-        # result directory: burrito/
         |> Path.join()
 
       initial_context = %Context{
@@ -139,6 +134,13 @@ defmodule Burrito.Builder do
   defp run_phase({phase_name, mod_list}, %Context{} = context) do
     # TODO: check for pre-phase steps
     Log.info(:phase, "PHASE: #{inspect(phase_name)}")
+
+    # Load in extra steps, pre and post
+    extra_steps = context.mix_release.options[:extra_steps]
+    extra_steps_pre = extra_steps[phase_name][:pre] || []
+    extra_steps_post = extra_steps[phase_name][:post] || []
+
+    mod_list = extra_steps_pre ++ mod_list ++ extra_steps_post
 
     Enum.reduce(mod_list, context, fn mod, %Context{} = acc ->
       %Context{} = new_context = mod.execute(acc)
