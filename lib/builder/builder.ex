@@ -56,27 +56,61 @@ defmodule Burrito.Builder do
     # if it's a valid target, set it as the only target
     target_override_string = System.get_env("BURRITO_TARGET")
 
-    build_targets = if target_override_string do
-      Log.warning(:build, "Target is being overridden with BURRITO_TARGET #{target_override_string}")
-      override = Target.string_to_tuple(target_override_string)
-      if override == :error do
+    build_targets =
+      if target_override_string do
+        Log.warning(
+          :build,
+          "Target is being overridden with BURRITO_TARGET #{target_override_string}"
+        )
 
+        old_targets = Target.get_old_targets()
+
+        override_atom = try do
+          String.to_existing_atom(target_override_string)
+        rescue
+          _ -> exit_invalid_target(target_override_string)
+        end
+
+        # If we have a named target defined that matches this atom use that
+        # otherwise if it's a legacy build target, translate it (this will be removed soon!)
+        # otherwise :error, not a valid target
+        cond do
+          Keyword.has_key?(build_targets, override_atom) ->
+            Keyword.take(build_targets, [override_atom])
+
+          override_atom in old_targets ->
+            resolved_override = Target.maybe_translate_old_target(override_atom)
+
+            if resolved_override == :error do
+              exit_invalid_target(override_atom)
+            end
+
+            [converted_old_target: resolved_override]
+
+          true ->
+            exit_invalid_target(override_atom)
+        end
       else
-        [override]
+        build_targets
       end
-    else
-      build_targets
-    end
 
-    Enum.each(build_targets, fn t ->
-      target = Target.maybe_translate_old_target(t) |> Target.init_target(debug?)
+    IO.inspect(build_targets)
+
+    # Build every target
+    Enum.each(build_targets, fn {name, t} ->
+      target = Target.init_target(t, name, debug?)
+
       self_path =
         __ENV__.file
         |> Path.dirname()
-        |> Path.split() # current directory: (burrito/lib/build/)
-        |> List.delete_at(-1) # ../
-        |> List.delete_at(-1) # ../
-        |> Path.join() # result directory: burrito/
+        # current directory: (burrito/lib/build/)
+        |> Path.split()
+        # ../
+        |> List.delete_at(-1)
+        # ../
+        |> List.delete_at(-1)
+        # result directory: burrito/
+        |> Path.join()
 
       initial_context = %Context{
         target: target,
@@ -90,28 +124,45 @@ defmodule Burrito.Builder do
         halt: false
       }
 
-      Log.info(:build, "Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tLibC: #{target.libc}\n\tDebug: #{target.debug?}")
+      Log.info(:build, "Burrito is building target: #{target.alias}")
+
+      Log.info(
+        :build,
+        "Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tQualifiers: #{inspect(target.qualifiers)}\n\tDebug: #{target.debug?}"
+      )
 
       Enum.reduce(@phases, initial_context, &run_phase/2)
     end)
 
+    # All done!
     release
   end
 
   defp run_phase({phase_name, mod_list}, %Context{} = context) do
     # TODO: check for pre-phase steps
     Log.info(:phase, "PHASE: #{inspect(phase_name)}")
+
     Enum.reduce(mod_list, context, fn mod, %Context{} = acc ->
       %Context{} = new_context = mod.execute(acc)
 
       # Halt if `halt` flag was set
       if new_context.halt do
-        Log.error(:build, "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}")
+        Log.error(
+          :build,
+          "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}"
+        )
+
         exit(1)
       end
 
       new_context
     end)
+
     # TODO: check for post-phase steps
+  end
+
+  defp exit_invalid_target(target) do
+    Log.error(:build, "#{target} is not a valid target!")
+    exit(1)
   end
 end

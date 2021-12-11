@@ -34,7 +34,7 @@ defmodule Burrito.Steps.Fetch.InitBuild do
 
     cross_build =
       context.target.os != Util.get_current_os() || context.target.cpu != Util.get_current_cpu() ||
-        context.target.libc != Util.get_libc_type()
+        context.target.qualifiers[:libc] != Util.get_libc_type()
 
     if cross_build do
       case check_erts_builds(context) do
@@ -57,7 +57,7 @@ defmodule Burrito.Steps.Fetch.InitBuild do
   end
 
   defp check_erts_builds(%Context{} = context) do
-    tuple = {context.target.os, context.target.cpu, context.target.libc}
+    tuple = {context.target.os, context.target.cpu, context.target.qualifiers[:libc]}
     custom_erts_defs = context.mix_release.options[:burrito][:local_erts] || %{}
 
     if tuple not in @pre_compiled_supported_tuples && !Map.has_key?(custom_erts_defs, tuple) do
@@ -72,18 +72,19 @@ defmodule Burrito.Steps.Fetch.InitBuild do
   end
 
   defp get_otp_url(%Target{} = target) do
+    target_match = {target.os, Keyword.take(target.qualifiers, [:libc])}
     {res, platform_string} =
-      case target do
-        %Target{os: :darwin} ->
+      case target_match do
+        {:darwin, _} ->
           {Req.get!(@versions_url_darwin_linux).body, "darwin"}
 
-        %Target{os: :linux, libc: :gnu} ->
+        {:linux, [libc: :gnu]} ->
           {Req.get!(@versions_url_darwin_linux).body, "linux"}
 
-        %Target{os: :linux, libc: :musl} ->
+        {:linux, [libc: :musl]} ->
           {Req.get!(@versions_url_darwin_linux).body, "musl_libc"}
 
-        %Target{os: :windows} ->
+        {:windows, _} ->
           {Req.get!(@versions_url_windows).body, "win64"}
 
         _ ->
