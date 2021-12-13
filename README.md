@@ -208,7 +208,7 @@ The three phases of the Burrito build pipeline are:
 
   An example of adding a step before the fetch phase, and after the build phase:
 
-  ```
+  ```elixir
   # ... mix.exs file
   def releases do
     [
@@ -228,6 +228,105 @@ The three phases of the Burrito build pipeline are:
   # ...
   ```
 
+#### Build Targets and Qualifiers
+
+A burrito build target is a tuple that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
+
+Here's a build target that defines Linux, 64-bit x86:
+
+```elixir
+  def releases do
+  [
+    example_cli_app: [
+      steps: [:assemble, &Burrito.wrap/1],
+      burrito: [
+        targets: [
+          linux: {:linux, :x86_64},
+        ],
+      ]
+    ]
+  ]
+  end
+```
+
+If we want to define another build target for linux, but with Musl libc instead of GNU libc we can add a Build Qualifier.
+
+```elixir
+  def releases do
+  [
+    example_cli_app: [
+      steps: [:assemble, &Burrito.wrap/1],
+      burrito: [
+        targets: [
+          linux: {:linux, :x86_64},
+          # add a musl libc linux target below...
+          linux_musl: {:linux, :x86_64, libc: :musl},
+        ],
+      ]
+    ]
+  ]
+  end
+```
+
+Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `local_erts` qualifiers have any affect on the standard burrito build phases and steps.
+
+Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
+
+#### Using Custom ERTS Builds
+
+The Burrito project provides pre-compiled builds of Erlang for the following build tuples:
+
+```elixir
+{:darwin, :x86_64},
+{:linux, :x86_64, libc: :gnu}, # or just {:linux, :x86_64}
+{:linux, :x86_64, libc: :musl},
+{:windows, :x86_64}
+```
+
+If you require another build of the ERTS for your targets, and wish to provide one yourself, you can do so by specifying the `local_erts` build qualifier for a specific target.
+
+Example:
+
+```elixir
+  def releases do
+  [
+    example_cli_app: [
+      steps: [:assemble, &Burrito.wrap/1],
+      burrito: [
+        targets: [
+          linux_arm: {:linux, :aarch64, local_erts: "/path/to/my_custom_erts.tar.gz"},
+        ],
+      ]
+    ]
+  ]
+  end
+```
+
+The `local_erts` value should be a path to a local `.tar.gz` of a release from the Erlang source tree. The structure inside the archive should mirror:
+
+```
+. (TAR Root)
+└─ otp-A.B.C-OS-ARCH
+  ├─ erts-X.Y.Z/
+  ├─ releases/
+  ├─ lib/
+  ├─ misc/
+  ├─ usr/
+  └─ Install
+```
+
+You can easily build an archive like this by doing the following commands inside the (official Erlang source code)[https://github.com/erlang/otp]:
+
+```bash
+# configure and build Erlang as you require...
+# ...
+
+export RELEASE_ROOT=$(pwd)/release/otp-A.B.C-OS-ARCH
+make release
+cd release
+tar czf my_custom_erts.tar.gz otp-A.B.C-OS-ARCH
+```
+
 ## Known Limitations and Issues
 #### Runtime Requirements
 Minimizing the runtime dependencies of the package binaries is an explicit design goal, and the requirements for each platform are as follows:
@@ -235,7 +334,7 @@ Minimizing the runtime dependencies of the package binaries is an explicit desig
 * MSVC Runtime for the Erlang version you are shipping
 * Windows 10 Build 1511 or later (for ANSI color support)
 ##### Linux
-* Any distribution with glibc
+* Any distribution with glibc (or musl libc)
 * libncurses-5 
 ##### MacOS
 * No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes codesigning
