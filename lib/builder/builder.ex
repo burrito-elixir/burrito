@@ -136,7 +136,7 @@ defmodule Burrito.Builder do
     Log.info(:phase, "PHASE: #{inspect(phase_name)}")
 
     # Load in extra steps, pre and post
-    extra_steps = context.mix_release.options[:extra_steps]
+    extra_steps = context.mix_release.options[:burrito][:extra_steps]
     extra_steps_pre = extra_steps[phase_name][:pre] || []
     extra_steps_post = extra_steps[phase_name][:post] || []
 

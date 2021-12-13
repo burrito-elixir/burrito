@@ -25,6 +25,10 @@ defmodule ExampleCliApp.MixProject do
           linux_musl: {:linux, :x86_64, libc: :musl},
           windows: {:windows, :x86_64}
         ],
+        extra_steps: [
+          fetch: [pre: [ExampleCliApp.CustomBuildStep]],
+          build: [post: [ExampleCliApp.CustomBuildStep]]
+        ],
         debug: Mix.env() != :prod,
         plugin: "./test_plugin/plugin.zig",
         no_clean: false,
