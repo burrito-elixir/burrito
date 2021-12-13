@@ -14,6 +14,10 @@
   * [Build-Time Environment Variables](#build-time-environment-variables)
   * [Application Entry Point](#application-entry-point)
   * [Maintenance Commands](#maintenance-commands)
+* [Advanced Build Configuration](#advanced-build-configuration)
+  * [Build Steps and Phases](#build-steps-and-phases)
+  * [Build Targets and Qualifiers](#build-targets-and-qualifiers)
+  * [Using custom ERTS builds](#using-custom-erts-builds)
 * [Known Limitations and Issues](#known-limitations-and-issues)
   * [Runtime Requirements](#runtime-requirements)
   * [Libc Support](#libc-support)
@@ -125,7 +129,14 @@ end
     example_cli_app: [
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
-        targets: [:darwin, :win64, :linux, :linux_musl]
+        targets: [
+          # Targets are defined using a build tuple, you can alias them to whatever name you want!
+          # {:os, :cpu_arch} or {:os, :cpu_arch, [build_option: :value ...]}
+          # See the "Build Qualifiers" section for more information.
+          macos: {:darwin, :x86_64},
+          linux: {:linux, :x86_64},
+          windows: {:windows, :x86_64}
+        ],
       ]
     ]
   ]
@@ -134,13 +145,10 @@ end
 
 (See the [Mix Release Config Options](#mix-release-config-options) for additional options)
 
-3. To build a release for the platforms defined in your `mix.exs` file: `MIX_ENV=prod mix release`
-4. You can also override the target platforms using the `BURRITO_TARGET` environment variable
-  * To build a release for Windows: `MIX_ENV=prod BURRITO_TARGET=win64 mix release`
-  * To build a release for MacOS: `MIX_ENV=prod BURRITO_TARGET=darwin mix release`
-  * To build a release for Linux: `MIX_ENV=prod BURRITO_TARGET=linux mix release`
+3. To build a release for all the targets defined in your `mix.exs` file: `MIX_ENV=prod mix release`
+4. You can also do one-shot builds by setting the `BURRITO_TARGET` environment variable to a target's alias (ex. `BURRITO_TARGET=macos` would only build the `macos` target we defined above.)
 
-In order to speed up iteration times during development, if the Mix environment is not set to `prod`, the binary will always extract its payload, even if that version of the application has already been unpacked on the target machine.
+NOTE: In order to speed up iteration times during development, if the Mix environment is not set to `prod`, the binary will always extract its payload, even if that version of the application has already been unpacked on the target machine.
 
 #### Mix Release Config Options
 
@@ -183,6 +191,42 @@ If you wish you retrieve the argv passed to your program by Burrito use this sni
 Binaries built by Burrito include a built-in set of commands for performing maintenance operations against the included application:
 
 * `./my-binary maintenance uninstall` - Will prompt to uninstall the unpacked payload on the host machine.
+
+## Advanced Build Configuration
+
+#### Build Steps and Phases
+
+Burrito runs the mix release task in three "Phases". Each of these phases contains any number of "Steps" -- a context struct is passes between each step that contains the current state of the build tree and mix release.
+
+The three phases of the Burrito build pipeline are:
+
+  * `Fetch` - This phase is responsible for downloading or copying in any replacement ERTS builds for cross-build targets.
+  * `Patch` - The patch phase injects custom scripts into the build directory, this phase is also where any custom files should be copied into the build directory before being archived.
+  * `Build` -  This is the final phase in the build flow, it produces the final wrapper binary with a payload embedded inside.
+  
+  You can add your own steps before and after phases execute. Your custom steps will also receive the build context struct, and can return a modified one to customize a build to your liking.
+
+  An example of adding a step before the fetch phase, and after the build phase:
+
+  ```
+  # ... mix.exs file
+  def releases do
+    [
+      my_app: [
+        steps: [:assemble, &Burrito.wrap/1],
+        burrito: [
+          # ... other Burrito configuration
+          extra_steps: [
+            fetch: [pre: [MyCustomStepModule, AnotherCustomStepModule]],
+            build: [post: [CustomStepAgain, YetAnotherCustomStepModule]]
+            # ...
+          ]
+        ]
+      ]
+    ]
+  end
+  # ...
+  ```
 
 ## Known Limitations and Issues
 #### Runtime Requirements
