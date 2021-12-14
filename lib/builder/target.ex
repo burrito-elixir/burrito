@@ -83,7 +83,8 @@ defmodule Burrito.Builder.Target do
   # maybe we should assume the host OS's libc instead (if they're running linux)
   defp maybe_fix_libc(%Target{os: :linux} = target) do
     if !target.qualifiers[:libc] || target.qualifiers[:libc] == :none do
-      %Target{target | qualifiers: [libc: :gnu]}
+      qualifiers = [libc: :gnu] ++ target.qualifiers
+      %Target{target | qualifiers: qualifiers}
     else
       target
     end

@@ -60,14 +60,12 @@ defmodule Burrito.Steps.Fetch.InitBuild do
     tuple = {context.target.os, context.target.cpu, context.target.qualifiers[:libc]}
     custom_erts_def = context.target.qualifiers[:local_erts]
 
-    if tuple not in @pre_compiled_supported_tuples && !custom_erts_def do
-      :error
-    else
-      if custom_erts_def do
+    cond do
+      custom_erts_def ->
+        Log.info(:step, "This build will use local ERTS tar: #{custom_erts_def}")
         {:ok, {:local, custom_erts_def}}
-      else
-        {:ok, get_otp_url(context.target)}
-      end
+      tuple in @pre_compiled_supported_tuples -> {:ok, get_otp_url(context.target)}
+      true -> :error
     end
   end
 
