@@ -7,7 +7,7 @@ defmodule Burrito.Builder.Target do
 
   @old_targets [:darwin, :win64, :linux, :linux_musl]
 
-  @type build_tuple :: {atom(), atom(), keyword()} | {atom(), atom()}
+  @required_key [:os, :cpu]
 
   typedstruct do
     field :alias, atom(), enforce: true
@@ -18,22 +18,20 @@ defmodule Burrito.Builder.Target do
     field :debug?, boolean(), enforce: true
   end
 
-  @spec init_target(build_tuple(), atom(), boolean()) :: Burrito.Builder.Target.t()
-  def init_target({os, cpu, build_qualifiers}, target_alias, debug?)
-      when is_list(build_qualifiers) do
+  @spec init_target(keyword(), atom(), boolean()) :: Burrito.Builder.Target.t()
+  def init_target(target, target_alias, debug?) do
+    base = Keyword.take(target, @required_key)
+    extra_qualifiers = Keyword.drop(target, @required_key)
+
     %Target{
       alias: target_alias,
-      cpu: cpu,
-      os: os,
-      qualifiers: build_qualifiers,
+      cpu: base[:cpu],
+      os: base[:os],
+      qualifiers: extra_qualifiers,
       otp_version: Util.get_otp_version(),
       debug?: debug?
     }
     |> maybe_fix_libc()
-  end
-
-  def init_target({os, cpu}, target_alias, debug?) do
-    init_target({os, cpu, [libc: :none]}, target_alias, debug?) |> maybe_fix_libc()
   end
 
   @spec make_triplet(Burrito.Builder.Target.t()) :: String.t()
@@ -47,32 +45,31 @@ defmodule Burrito.Builder.Target do
 
     triplet = "#{target.cpu}-#{os}"
 
-    if target.qualifiers[:libc] != :none do
+    if target.qualifiers[:libc] do
       "#{triplet}-#{target.qualifiers[:libc]}"
     else
       triplet
     end
   end
 
-  @spec maybe_translate_old_target(:darwin | :linux | :linux_musl | :win64 | build_tuple()) ::
-          build_tuple() | :error
+  @spec maybe_translate_old_target(atom()) :: keyword()
   def maybe_translate_old_target(old_target) when old_target in @old_targets do
+    old_target = case old_target do
+      :darwin -> [os: :darwin, cpu: :x86_64]
+      :win64 -> [os: :windows, cpu: :x86_64]
+      :linux -> [os: :linux, cpu: :x86_64, libc: :gnu]
+      :linux_musl -> [os: :linux, cpu: :x86_64, libc: :musl]
+    end
+
     Log.warning(
       :build,
-      "You have specified an old-style build target, please move to using the newer format of build targets\n\t{os, cpu, [extra_options]}\n\tSee the Burrito README for examples!"
+      "You have specified an old-style build target, please move to using the newer format of build targets\n\t#{inspect(old_target)}\n\tSee the Burrito README for examples!"
     )
 
-    case old_target do
-      :darwin -> {:darwin, :x86_64}
-      :win64 -> {:windows, :x86_64}
-      :linux -> {:linux, :x86_64, [libc: :gnu]}
-      :linux_musl -> {:linux, :x86_64, [libc: :musl]}
-    end
+    old_target
   end
 
-  def maybe_translate_old_target({_, _, _} = not_old_target), do: not_old_target
-  def maybe_translate_old_target({_, _} = not_old_target), do: not_old_target
-  def maybe_translate_old_target(_), do: :error
+  def maybe_translate_old_target(not_old_target), do: not_old_target
 
   @spec get_old_targets :: [:darwin | :linux | :linux_musl | :win64]
   def get_old_targets do
@@ -82,8 +79,8 @@ defmodule Burrito.Builder.Target do
   # PONDER: is it ok to assume :gnu here?
   # maybe we should assume the host OS's libc instead (if they're running linux)
   defp maybe_fix_libc(%Target{os: :linux} = target) do
-    if !target.qualifiers[:libc] || target.qualifiers[:libc] == :none do
-      qualifiers = [libc: :gnu] ++ target.qualifiers
+    if !target.qualifiers[:libc] do
+      qualifiers = Keyword.put(target.qualifiers, :libc, :gnu)
       %Target{target | qualifiers: qualifiers}
     else
       target

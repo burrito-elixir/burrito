@@ -81,12 +81,7 @@ defmodule Burrito.Builder do
 
           override_atom in old_targets ->
             resolved_override = Target.maybe_translate_old_target(override_atom)
-
-            if resolved_override == :error do
-              exit_invalid_target(override_atom)
-            end
-
-            [converted_old_target: resolved_override]
+            Keyword.put([], override_atom, resolved_override)
 
           true ->
             exit_invalid_target(override_atom)

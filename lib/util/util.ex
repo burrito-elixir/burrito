@@ -8,10 +8,10 @@ defmodule Burrito.Util do
     end
   end
 
-  @spec get_libc_type :: :gnu | :musl | :none
+  @spec get_libc_type :: :gnu | :musl | nil
   def get_libc_type do
     if get_current_os() != :linux do
-      :none
+      nil
     else
       {result, _} = System.cmd("ldd", ["--version"])
 

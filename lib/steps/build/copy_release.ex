@@ -1,7 +1,6 @@
 defmodule Burrito.Steps.Build.CopyRelease do
   alias Burrito.Builder.Context
   alias Burrito.Builder.Step
-  alias Burrito.Builder.Target
 
   @behaviour Step
 
@@ -13,7 +12,6 @@ defmodule Burrito.Steps.Build.CopyRelease do
   @impl Step
   def execute(%Context{} = context) do
     app_path = File.cwd!()
-    triplet = Target.make_triplet(context.target)
     release_name = Atom.to_string(context.mix_release.name)
     target_name = Atom.to_string(context.target.alias)
 
@@ -26,9 +24,9 @@ defmodule Burrito.Steps.Build.CopyRelease do
 
     bin_name =
       if context.target.os == :windows do
-        "#{release_name}_#{target_name}_#{triplet}.exe"
+        "#{release_name}_#{target_name}.exe"
       else
-        "#{release_name}_#{target_name}_#{triplet}"
+        "#{release_name}_#{target_name}"
       end
 
     bin_path = Path.join(context.self_dir, ["zig-out", "/bin", "/#{orig_bin_name}"])

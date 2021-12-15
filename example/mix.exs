@@ -18,12 +18,10 @@ defmodule ExampleCliApp.MixProject do
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
         targets: [
-          # Targets are defined using a build tuple
-          # {:os, :cpu_arch} or {:os, :cpu_arch, [:extra_build_qualifiers, ...]}
-          macos: {:darwin, :x86_64},
-          linux: {:linux, :x86_64},
-          linux_musl: {:linux, :x86_64, libc: :musl},
-          windows: {:windows, :x86_64}
+          macos: [os: :darwin, cpu: :x86_64],
+          linux: [os: :linux, cpu: :x86_64],
+          linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
+          windows: [os: :windows, cpu: :x86_64]
         ],
         extra_steps: [
           fetch: [pre: [ExampleCliApp.CustomBuildStep]],
