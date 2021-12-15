@@ -57,7 +57,7 @@ defmodule Burrito.Builder.Target do
     old_target = case old_target do
       :darwin -> [os: :darwin, cpu: :x86_64]
       :win64 -> [os: :windows, cpu: :x86_64]
-      :linux -> [os: :linux, cpu: :x86_64, libc: :gnu]
+      :linux -> [os: :linux, cpu: :x86_64, libc: :glibc]
       :linux_musl -> [os: :linux, cpu: :x86_64, libc: :musl]
     end
 
@@ -76,11 +76,11 @@ defmodule Burrito.Builder.Target do
     @old_targets
   end
 
-  # PONDER: is it ok to assume :gnu here?
+  # PONDER: is it ok to assume :glibc here?
   # maybe we should assume the host OS's libc instead (if they're running linux)
   defp maybe_fix_libc(%Target{os: :linux} = target) do
     if !target.qualifiers[:libc] do
-      qualifiers = Keyword.put(target.qualifiers, :libc, :gnu)
+      qualifiers = Keyword.put(target.qualifiers, :libc, :glibc)
       %Target{target | qualifiers: qualifiers}
     else
       target

@@ -8,7 +8,7 @@ defmodule Burrito.Util do
     end
   end
 
-  @spec get_libc_type :: :gnu | :musl | nil
+  @spec get_libc_type :: :glibc | :musl | nil
   def get_libc_type do
     if get_current_os() != :linux do
       nil
@@ -17,7 +17,7 @@ defmodule Burrito.Util do
 
       cond do
         String.contains?(result, "musl") -> :musl
-        true -> :gnu
+        true -> :glibc
       end
     end
   end
