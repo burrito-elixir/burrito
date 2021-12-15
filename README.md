@@ -143,7 +143,7 @@ end
 (See the [Mix Release Config Options](#mix-release-config-options) for additional options)
 
 3. To build a release for all the targets defined in your `mix.exs` file: `MIX_ENV=prod mix release`
-4. You can also do one-shot builds by setting the `BURRITO_TARGET` environment variable to a target's alias (ex. `BURRITO_TARGET=macos` would only build the `macos` target we defined above.)
+4. You can also build a single target by setting the `BURRITO_TARGET` environment variable to the alias for that target (e.g. Setting `BURRITO_TARGET=macos` builds only the `macos` target defined above.)
 
 NOTE: In order to speed up iteration times during development, if the Mix environment is not set to `prod`, the binary will always extract its payload, even if that version of the application has already been unpacked on the target machine.
 
@@ -193,7 +193,7 @@ Binaries built by Burrito include a built-in set of commands for performing main
 
 #### Build Steps and Phases
 
-Burrito runs the mix release task in three "Phases". Each of these phases contains any number of "Steps" -- a context struct is passes between each step that contains the current state of the build tree and mix release.
+Burrito runs the mix release task in three "Phases". Each of these phases contains a number of "Steps", and a context struct containing the current state of the build, which is passed between each step.
 
 The three phases of the Burrito build pipeline are:
 
@@ -216,56 +216,38 @@ The three phases of the Burrito build pipeline are:
           extra_steps: [
             fetch: [pre: [MyCustomStepModule, AnotherCustomStepModule]],
             build: [post: [CustomStepAgain, YetAnotherCustomStepModule]]
-            # ...
           ]
         ]
       ]
     ]
   end
-  # ...
   ```
 
 #### Build Targets and Qualifiers
 
-A burrito build target is a keyword list that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
+A Burrito build target is a keyword list that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
 
-Here's a build target that defines Linux, 64-bit x86:
-
-```elixir
-  def releases do
-  [
-    example_cli_app: [
-      steps: [:assemble, &Burrito.wrap/1],
-      burrito: [
-        targets: [
-          linux: [os: :linux, cpu: :x86_64],
-        ],
-      ]
-    ]
-  ]
-  end
-```
-
-If we want to define another build target for linux, but with Musl libc instead of GNU libc we can add a Build Qualifier.
+Here's a definition for a build target configured for Linux x86-64:
 
 ```elixir
-  def releases do
-  [
-    example_cli_app: [
-      steps: [:assemble, &Burrito.wrap/1],
-      burrito: [
-        targets: [
-          linux: [os: :linux, cpu: :x86_64],
-          # add a musl libc linux target below...
-          linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
-        ],
-      ]
-    ]
-  ]
-  end
+targets: [
+  linux: [os: :linux, cpu: :x86_64]
+]
 ```
 
-Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `local_erts` qualifiers have any affect on the standard burrito build phases and steps.
+Build targets can be further customized using build qualifiers. For example, a Linux build target can be configured to use `musl` instead of `glibc` using the following definition:
+
+```elixir
+targets: [
+  linux_musl: [
+    os: :linux,
+    cpu: :x86_64,
+    libc: :musl
+  ]
+]
+```
+
+Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `local_erts` qualifiers have any affect on the standard Burrito build phases and steps.
 
 Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
 
@@ -275,28 +257,21 @@ The Burrito project provides pre-compiled builds of Erlang for the following pla
 
 ```elixir
 [os: :darwin, cpu: :x86_64],
-[os: :linux, cpu: :x86_64, libc: :gnu], # or just [os: :linux, cpu: :x86_64]
+[os: :linux, cpu: :x86_64, libc: :glibc], # or just [os: :linux, cpu: :x86_64]
 [os: :linux, cpu: :x86_64, libc: :musl],
 [os: :windows, cpu: :x86_64]
 ```
 
-If you require another build of the ERTS for your targets, and wish to provide one yourself, you can do so by specifying the `local_erts` build qualifier for a specific target.
-
-Example:
+If you require a custom build of ERTS, you're able to override the precompiled binaries on a per target basis by setting local_erts to the path of your ERTS build:
 
 ```elixir
-  def releases do
-  [
-    example_cli_app: [
-      steps: [:assemble, &Burrito.wrap/1],
-      burrito: [
-        targets: [
-          linux_arm: [os: :linux, cpu: :arm64, local_erts: "/path/to/my_custom_erts.tar.gz"]
-        ],
-      ]
-    ]
+targets: [
+  linux_arm: [
+    os: :linux,
+    cpu: :arm64,
+    local_erts: "/path/to/my_custom_erts.tar.gz"
   ]
-  end
+]
 ```
 
 The `local_erts` value should be a path to a local `.tar.gz` of a release from the Erlang source tree. The structure inside the archive should mirror:
