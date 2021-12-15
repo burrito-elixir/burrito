@@ -20,7 +20,6 @@
   * [Using custom ERTS builds](#using-custom-erts-builds)
 * [Known Limitations and Issues](#known-limitations-and-issues)
   * [Runtime Requirements](#runtime-requirements)
-  * [Libc Support](#libc-support)
 * [Contributing](#contributing)
   * [Welcome!](#welcome)
 
@@ -253,7 +252,7 @@ Tip: You can use these qualifiers as a way to pass per-target information into y
 
 #### Using Custom ERTS Builds
 
-The Burrito project provides pre-compiled builds of Erlang for the following platforms:
+The Burrito project provides precompiled builds of Erlang for the following platforms:
 
 ```elixir
 [os: :darwin, cpu: :x86_64],
