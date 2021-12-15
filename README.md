@@ -130,12 +130,9 @@ end
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
         targets: [
-          # Targets are defined using a build tuple, you can alias them to whatever name you want!
-          # {:os, :cpu_arch} or {:os, :cpu_arch, [build_option: :value ...]}
-          # See the "Build Qualifiers" section for more information.
-          macos: {:darwin, :x86_64},
-          linux: {:linux, :x86_64},
-          windows: {:windows, :x86_64}
+          macos: [os: :darwin, cpu: :x86_64],
+          linux: [os: :linux, cpu: :x86_64],
+          windows: [os: :windows, cpu: :x86_64]
         ],
       ]
     ]
@@ -230,7 +227,7 @@ The three phases of the Burrito build pipeline are:
 
 #### Build Targets and Qualifiers
 
-A burrito build target is a tuple that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
+A burrito build target is a keyword list that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
 
 Here's a build target that defines Linux, 64-bit x86:
 
@@ -241,7 +238,7 @@ Here's a build target that defines Linux, 64-bit x86:
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
         targets: [
-          linux: {:linux, :x86_64},
+          linux: [os: :linux, cpu: :x86_64],
         ],
       ]
     ]
@@ -258,9 +255,9 @@ If we want to define another build target for linux, but with Musl libc instead 
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
         targets: [
-          linux: {:linux, :x86_64},
+          linux: [os: :linux, cpu: :x86_64],
           # add a musl libc linux target below...
-          linux_musl: {:linux, :x86_64, libc: :musl},
+          linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
         ],
       ]
     ]
@@ -274,13 +271,13 @@ Tip: You can use these qualifiers as a way to pass per-target information into y
 
 #### Using Custom ERTS Builds
 
-The Burrito project provides pre-compiled builds of Erlang for the following build tuples:
+The Burrito project provides pre-compiled builds of Erlang for the following platforms:
 
 ```elixir
-{:darwin, :x86_64},
-{:linux, :x86_64, libc: :gnu}, # or just {:linux, :x86_64}
-{:linux, :x86_64, libc: :musl},
-{:windows, :x86_64}
+[os: :darwin, cpu: :x86_64],
+[os: :linux, cpu: :x86_64, libc: :gnu], # or just [os: :linux, cpu: :x86_64]
+[os: :linux, cpu: :x86_64, libc: :musl],
+[os: :windows, cpu: :x86_64]
 ```
 
 If you require another build of the ERTS for your targets, and wish to provide one yourself, you can do so by specifying the `local_erts` build qualifier for a specific target.
@@ -294,7 +291,7 @@ Example:
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
         targets: [
-          linux_arm: {:linux, :aarch64, local_erts: "/path/to/my_custom_erts.tar.gz"},
+          linux_arm: [os: :linux, cpu: :arm64, local_erts: "/path/to/my_custom_erts.tar.gz"]
         ],
       ]
     ]
