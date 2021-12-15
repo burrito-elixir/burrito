@@ -127,7 +127,6 @@ defmodule Burrito.Builder do
   end
 
   defp run_phase({phase_name, mod_list}, %Context{} = context) do
-    # TODO: check for pre-phase steps
     Log.info(:phase, "PHASE: #{inspect(phase_name)}")
 
     # Load in extra steps, pre and post
@@ -152,8 +151,6 @@ defmodule Burrito.Builder do
 
       new_context
     end)
-
-    # TODO: check for post-phase steps
   end
 
   defp exit_invalid_target(target) do
