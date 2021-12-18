@@ -5,13 +5,11 @@ defmodule Burrito.Builder.Context do
 
   @type erts_location :: nil | {:release | :local | :url | :unpacked, term()}
 
-  typedstruct do
-    field :target, Target.t(), enforce: true
-    field :erts_location, erts_location() , enforce: true
-    field :cross_build, boolean, enforce: true
-    field :mix_release, Mix.Release.t(), enforce: true
-    field :work_dir, String.t(), enforce: true
-    field :self_dir, String.t(), enforce: true
-    field :halt, boolean(), default: false
+  typedstruct enforce: true do
+    field :target, Target.t()
+    field :mix_release, Mix.Release.t()
+    field :work_dir, String.t()
+    field :self_dir, String.t()
+    field :halt, boolean()
   end
 end

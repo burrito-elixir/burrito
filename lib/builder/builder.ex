@@ -104,8 +104,6 @@ defmodule Burrito.Builder do
 
       initial_context = %Context{
         target: target,
-        erts_location: :local,
-        cross_build: false,
         mix_release: release,
         work_dir: "",
         self_dir: self_path,
