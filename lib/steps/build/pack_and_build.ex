@@ -50,7 +50,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
       {_, 0} -> context
       _ ->
         Log.error(:step, "Burrito failed to wrap up your app! Check the logs for more information.")
-        exit(1)
+        raise "Wrapper build failed"
     end
   end
 

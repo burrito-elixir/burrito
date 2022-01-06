@@ -69,7 +69,7 @@ defmodule Burrito.Builder do
         override_atom = try do
           String.to_existing_atom(target_override_string)
         rescue
-          _ -> exit_invalid_target(target_override_string)
+          _ -> raise_invalid_target(target_override_string)
         end
 
         # If we have a named target defined that matches this atom use that
@@ -84,7 +84,7 @@ defmodule Burrito.Builder do
             Keyword.put([], override_atom, resolved_override)
 
           true ->
-            exit_invalid_target(override_atom)
+            raise_invalid_target(override_atom)
         end
       else
         build_targets
@@ -152,8 +152,7 @@ defmodule Burrito.Builder do
     end)
   end
 
-  defp exit_invalid_target(target) do
-    Log.error(:build, "#{target} is not a valid target!")
-    exit(1)
+  def raise_invalid_target(target) do
+    raise "#{target} is not a valid target!"
   end
 end
