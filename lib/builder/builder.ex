@@ -42,7 +42,7 @@ defmodule Burrito.Builder do
   """
 
   @phases [
-    fetch: [Fetch.InitBuild, Fetch.FetchERTS],
+    fetch: [Fetch.Init, Fetch.ResolveERTS],
     patch: [Patch.CopyERTS, Patch.CopyScripts, Patch.RecompileNIFs],
     build: [Build.PackAndBuild, Build.CopyRelease]
   ]
@@ -92,7 +92,8 @@ defmodule Burrito.Builder do
 
     # Build every target
     Enum.each(build_targets, fn {name, t} ->
-      target = Target.init_target(t, name, debug?)
+      target = Target.init_target(name, t)
+      target = %Target{target | debug?: debug?}
 
       self_path =
         __ENV__.file
@@ -107,7 +108,7 @@ defmodule Burrito.Builder do
         mix_release: release,
         work_dir: "",
         self_dir: self_path,
-        halt: false
+        halted: false
       }
 
       Log.info(:build, "Burrito is building target: #{target.alias}")
@@ -138,7 +139,7 @@ defmodule Burrito.Builder do
       %Context{} = new_context = mod.execute(acc)
 
       # Halt if `halt` flag was set
-      if new_context.halt do
+      if new_context.halted do
         Log.error(
           :build,
           "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}"

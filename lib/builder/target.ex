@@ -119,11 +119,16 @@ defmodule Burrito.Builder.Target do
     triplet = "#{target.cpu}-#{os}"
 
     if target.qualifiers[:libc] do
-      "#{triplet}-#{target.qualifiers[:libc]}"
+      libc = translate_libc_to_zig(target.qualifiers[:libc])
+      "#{triplet}-#{libc}"
     else
       triplet
     end
   end
+
+  defp translate_libc_to_zig(:glibc), do: "gnu"
+  defp translate_libc_to_zig(:musl), do: "musl"
+  defp translate_libc_to_zig(abi), do: Atom.to_string(abi)
 
   @spec maybe_translate_old_target(atom()) :: keyword()
   def maybe_translate_old_target(old_target) when old_target in @old_targets do

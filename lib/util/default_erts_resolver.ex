@@ -10,7 +10,6 @@ defmodule Burrito.Util.DefaultERTSResolver do
   @behaviour ERTSResolver
 
   @impl ERTSResolver
-  @spec do_resolve(Target.t()) :: Target.t()
   def do_resolve(%Target{erts_source: {:runtime, _}} = target) do
     %Target{target | erts_source: {:runtime, version: Util.get_otp_version()}}
   end
@@ -33,21 +32,21 @@ defmodule Burrito.Util.DefaultERTSResolver do
 
   def do_resolve(%Target{erts_source: {:url, url: location}} = target) do
     url_string = URI.to_string(location)
-    archive_data = get_erts(url_string, target)
+    archive_data = get_erts(url_string)
     unpacked_location = do_unpack(archive_data, target)
 
     %Target{target | erts_source: {:local_unpacked, path: unpacked_location}}
   end
 
-  defp get_erts(tar_url, target) do
+  defp get_erts(tar_url) do
     cache_key = :crypto.hash(:sha, tar_url) |> Base.encode16()
 
     case FileCache.fetch(cache_key) do
       {:hit, data} ->
         Log.info(:step, "Found matching cached ERTS, using that")
-        do_unpack(data, target)
+        data
       _ ->
-        do_download(tar_url, cache_key) |> do_unpack(target)
+        do_download(tar_url, cache_key)
     end
   end
 
@@ -70,6 +69,8 @@ defmodule Burrito.Util.DefaultERTSResolver do
     :os.cmd(command)
 
     File.rm!(tar_dest_path)
+
+    Log.info(:step, "Unpacked ERTS to: #{extraction_path}")
 
     extraction_path
   end

@@ -10,12 +10,12 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
   @impl Step
   def execute(%Context{} = context) do
-    case context.erts_location do
+    case context.target.erts_source do
       # nothing to do
-      {:release, _} ->
+      {:runtime, _} ->
         context
 
-      {:unpacked, location} ->
+      {:local_unpacked, [path: location]} ->
         # copy unpacked bins into release working directory
         do_copy(location, context)
     end
