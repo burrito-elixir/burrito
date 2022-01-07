@@ -24,6 +24,8 @@ defmodule Burrito.Steps.Patch.CopyERTS do
   end
 
   defp do_copy(erts_location, %Context{} = context) do
+    Log.info(:step, "Replacing ERTS binaries...")
+
     # Clean out current bins
     dest_bin_path = Path.join(context.work_dir, ["erts-*/", "bin/"]) |> Path.wildcard() |> List.first()
 
