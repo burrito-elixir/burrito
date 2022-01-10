@@ -15,7 +15,7 @@ defmodule Burrito.Builder.Log do
     case type do
       :build -> "-> "
       :phase -> "--> "
-      :step ->  "---> "
+      :step -> "---> "
     end
   end
 end

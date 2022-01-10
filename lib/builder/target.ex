@@ -25,6 +25,7 @@ defmodule Burrito.Builder.Target do
   @spec init_target(atom(), target_definition()) :: t()
   def init_target(_target_alias, legacy_definition) when is_atom(legacy_definition) do
     debug? = Mix.env() != :prod
+
     translated_target =
       case legacy_definition do
         :darwin -> [os: :darwin, cpu: :x86_64, debug?: debug?]
@@ -54,14 +55,15 @@ defmodule Burrito.Builder.Target do
     end
 
     # If linux, and no libc defined, default to the host system one
-    libc = if fields[:os] == :linux do
-      if libc == nil do
-        # if we are not on a host that has a libc, default to glibc
-        Util.get_libc_type() || :glibc
-      else
-        libc
+    libc =
+      if fields[:os] == :linux do
+        if libc == nil do
+          # if we are not on a host that has a libc, default to glibc
+          Util.get_libc_type() || :glibc
+        else
+          libc
+        end
       end
-    end
 
     # translate the custom_erts (or lack of one) in a source to be resolved later
     cross_build = is_cross_build?(fields, libc)
@@ -81,10 +83,17 @@ defmodule Burrito.Builder.Target do
   defp translate_erts_source(custom_location, cross_build?) do
     if custom_location do
       cond do
-        is_uri?(custom_location) -> {:url, url: custom_location}
-        String.ends_with?(custom_location, ".tar.gz") -> {:local, path: custom_location}
-        File.dir?(custom_location) -> {:local_unpacked, path: custom_location}
-        true -> raise "`:custom_erts` was not a URL, local path to tarball, or local path to a directory"
+        is_uri?(custom_location) ->
+          {:url, url: custom_location}
+
+        String.ends_with?(custom_location, ".tar.gz") ->
+          {:local, path: custom_location}
+
+        File.dir?(custom_location) ->
+          {:local_unpacked, path: custom_location}
+
+        true ->
+          raise "`:custom_erts` was not a URL, local path to tarball, or local path to a directory"
       end
     else
       if cross_build? do
@@ -104,7 +113,8 @@ defmodule Burrito.Builder.Target do
   end
 
   defp is_cross_build?(fields, libc) do
-    fields[:os] != Util.get_current_os() || fields[:cpu] != Util.get_current_cpu() || libc != Util.get_libc_type()
+    fields[:os] != Util.get_current_os() || fields[:cpu] != Util.get_current_cpu() ||
+      libc != Util.get_libc_type()
   end
 
   @spec make_triplet(Burrito.Builder.Target.t()) :: String.t()

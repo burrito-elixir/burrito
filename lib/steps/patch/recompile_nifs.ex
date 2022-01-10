@@ -46,14 +46,20 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
   defp maybe_recompile_nif({_, _, false}, _, _, _), do: :no_nif
 
-  defp maybe_recompile_nif({dep, path, true}, release_working_path, {:unpacked, erts_path}, cross_target) do
+  defp maybe_recompile_nif(
+         {dep, path, true},
+         release_working_path,
+         {:unpacked, erts_path},
+         cross_target
+       ) do
     dep = Atom.to_string(dep)
 
     Log.info(:step, "Going to recompile NIF for cross-build: #{dep} -> #{cross_target}")
 
     _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
 
-    erts_include = Path.join(erts_path, ["otp-*/", "erts*/", "/include"]) |> Path.wildcard() |> List.first()
+    erts_include =
+      Path.join(erts_path, ["otp-*/", "erts*/", "/include"]) |> Path.wildcard() |> List.first()
 
     build_result =
       System.cmd("make", ["--always-make"],

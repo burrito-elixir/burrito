@@ -47,14 +47,21 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     end
 
     case build_result do
-      {_, 0} -> context
+      {_, 0} ->
+        context
+
       _ ->
-        Log.error(:step, "Burrito failed to wrap up your app! Check the logs for more information.")
+        Log.error(
+          :step,
+          "Burrito failed to wrap up your app! Check the logs for more information."
+        )
+
         raise "Wrapper build failed"
     end
   end
 
   defp maybe_get_plugin_path(nil), do: nil
+
   defp maybe_get_plugin_path(plugin_path) do
     Path.join(File.cwd!(), [plugin_path])
   end

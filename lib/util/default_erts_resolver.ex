@@ -14,10 +14,12 @@ defmodule Burrito.Util.DefaultERTSResolver do
     %Target{target | erts_source: {:runtime, version: Util.get_otp_version()}}
   end
 
-  def do_resolve(%Target{erts_source: {:precompiled, version: otp_version}} = target) when is_binary(otp_version) do
+  def do_resolve(%Target{erts_source: {:precompiled, version: otp_version}} = target)
+      when is_binary(otp_version) do
     case ERTSUrlFetcher.fetch_version(target.os, target.qualifiers[:libc], otp_version) do
       %URI{} = location ->
         %Target{target | erts_source: {:url, url: location}} |> do_resolve()
+
       :error ->
         target
     end
@@ -45,6 +47,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
       {:hit, data} ->
         Log.info(:step, "Found matching cached ERTS, using that")
         data
+
       _ ->
         do_download(tar_url, cache_key)
     end
@@ -61,10 +64,11 @@ defmodule Burrito.Util.DefaultERTSResolver do
     File.mkdir_p!(extraction_path)
 
     # we use 7z to unpack windows setup files, otherwise we use tar
-    command = case target.os do
-      :windows -> ~c"7z x #{tar_dest_path} -o#{extraction_path}/otp-windows/"
-      _ -> ~c"tar xzf #{tar_dest_path} -C #{extraction_path}"
-    end
+    command =
+      case target.os do
+        :windows -> ~c"7z x #{tar_dest_path} -o#{extraction_path}/otp-windows/"
+        _ -> ~c"tar xzf #{tar_dest_path} -C #{extraction_path}"
+      end
 
     :os.cmd(command)
 

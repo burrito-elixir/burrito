@@ -66,11 +66,12 @@ defmodule Burrito.Builder do
 
         old_targets = Target.get_old_targets()
 
-        override_atom = try do
-          String.to_existing_atom(target_override_string)
-        rescue
-          _ -> raise_invalid_target(target_override_string)
-        end
+        override_atom =
+          try do
+            String.to_existing_atom(target_override_string)
+          rescue
+            _ -> raise_invalid_target(target_override_string)
+          end
 
         # If we have a named target defined that matches this atom use that
         # otherwise if it's a legacy build target, translate it (this will be removed soon!)
