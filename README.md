@@ -101,7 +101,7 @@ That being said, we're excited by our early use of the tooling, and are eager to
 
 You must have the following installed and in your PATH:
 
-* Zig (master/nightly - we do not support 0.8.0) -- `zig`
+* Zig (0.9.0) -- `zig`
 * Gzip -- `gzip`
 * 7z -- `7z`
 
