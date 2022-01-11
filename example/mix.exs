@@ -13,17 +13,26 @@ defmodule ExampleCliApp.MixProject do
   end
 
   def releases do
-  [
-    example_cli_app: [
-      steps: [:assemble, &Burrito.wrap/1],
-      burrito: [
-        targets: [:darwin, :win64, :linux, :linux_musl],
-        debug: Mix.env() != :prod,
-        plugin: "./test_plugin/plugin.zig",
-        no_clean: false,
+    [
+      example_cli_app: [
+        steps: [:assemble, &Burrito.wrap/1],
+        burrito: [
+          targets: [
+            macos: [os: :darwin, cpu: :x86_64],
+            linux: [os: :linux, cpu: :x86_64],
+            linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
+            windows: [os: :windows, cpu: :x86_64]
+          ],
+          extra_steps: [
+            fetch: [pre: [ExampleCliApp.CustomBuildStep]],
+            build: [post: [ExampleCliApp.CustomBuildStep]]
+          ],
+          debug: Mix.env() != :prod,
+          plugin: "./test_plugin/plugin.zig",
+          no_clean: false
+        ]
       ]
     ]
-  ]
   end
 
   def application do
@@ -35,7 +44,7 @@ defmodule ExampleCliApp.MixProject do
 
   defp deps do
     [
-      {:burrito, path: "../"},
+      {:burrito, path: "../"}
       # {:ex_termbox, "~> 1.0"},
     ]
   end

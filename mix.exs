@@ -11,17 +11,16 @@ defmodule Burrito.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger, :eex]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:req, "~> 0.2.0"},
+      {:typed_struct, "~> 0.2.1", runtime: false},
       {:jason, "~> 1.2"}
     ]
   end

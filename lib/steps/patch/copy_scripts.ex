@@ -1,7 +1,16 @@
-defmodule Burrito.Helpers.LaunchScripts do
-  require Logger
+defmodule Burrito.Steps.Patch.CopyScripts do
+  alias Burrito.Builder.Context
+  alias Burrito.Builder.Step
 
-  def copy_launch_scripts(self_path, release_path, release_name) do
+  @behaviour Step
+
+  @impl Step
+  def execute(%Context{} = context) do
+    copy_launch_scripts(context.self_dir, context.work_dir, context.mix_release.name)
+    context
+  end
+
+  defp copy_launch_scripts(self_path, release_path, release_name) do
     release_name = to_string(release_name)
     src_dir = scripts_dir(self_path)
     scripts = launch_scripts(release_path, release_name)

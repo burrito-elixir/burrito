@@ -32,13 +32,13 @@ Temporary Items
 
 zig-cache/
 zig-out/
-build/
 build-*/
 docgen_tmp/
 
 *.exe
 *.pdb
 payload.foilz*
+_metadata.json
 
 ### Elixir ###
 /_build

@@ -14,9 +14,12 @@
   * [Build-Time Environment Variables](#build-time-environment-variables)
   * [Application Entry Point](#application-entry-point)
   * [Maintenance Commands](#maintenance-commands)
+* [Advanced Build Configuration](#advanced-build-configuration)
+  * [Build Steps and Phases](#build-steps-and-phases)
+  * [Build Targets and Qualifiers](#build-targets-and-qualifiers)
+  * [Using custom ERTS builds](#using-custom-erts-builds)
 * [Known Limitations and Issues](#known-limitations-and-issues)
   * [Runtime Requirements](#runtime-requirements)
-  * [Libc Support](#libc-support)
 * [Contributing](#contributing)
   * [Welcome!](#welcome)
 
@@ -125,7 +128,11 @@ end
     example_cli_app: [
       steps: [:assemble, &Burrito.wrap/1],
       burrito: [
-        targets: [:darwin, :win64, :linux, :linux_musl]
+        targets: [
+          macos: [os: :darwin, cpu: :x86_64],
+          linux: [os: :linux, cpu: :x86_64],
+          windows: [os: :windows, cpu: :x86_64]
+        ],
       ]
     ]
   ]
@@ -134,13 +141,10 @@ end
 
 (See the [Mix Release Config Options](#mix-release-config-options) for additional options)
 
-3. To build a release for the platforms defined in your `mix.exs` file: `MIX_ENV=prod mix release`
-4. You can also override the target platforms using the `BURRITO_TARGET` environment variable
-  * To build a release for Windows: `MIX_ENV=prod BURRITO_TARGET=win64 mix release`
-  * To build a release for MacOS: `MIX_ENV=prod BURRITO_TARGET=darwin mix release`
-  * To build a release for Linux: `MIX_ENV=prod BURRITO_TARGET=linux mix release`
+3. To build a release for all the targets defined in your `mix.exs` file: `MIX_ENV=prod mix release`
+4. You can also build a single target by setting the `BURRITO_TARGET` environment variable to the alias for that target (e.g. Setting `BURRITO_TARGET=macos` builds only the `macos` target defined above.)
 
-In order to speed up iteration times during development, if the Mix environment is not set to `prod`, the binary will always extract its payload, even if that version of the application has already been unpacked on the target machine.
+NOTE: In order to speed up iteration times during development, if the Mix environment is not set to `prod`, the binary will always extract its payload, even if that version of the application has already been unpacked on the target machine.
 
 #### Mix Release Config Options
 
@@ -184,6 +188,116 @@ Binaries built by Burrito include a built-in set of commands for performing main
 
 * `./my-binary maintenance uninstall` - Will prompt to uninstall the unpacked payload on the host machine.
 
+## Advanced Build Configuration
+
+#### Build Steps and Phases
+
+Burrito runs the mix release task in three "Phases". Each of these phases contains a number of "Steps", and a context struct containing the current state of the build, which is passed between each step.
+
+The three phases of the Burrito build pipeline are:
+
+  * `Fetch` - This phase is responsible for downloading or copying in any replacement ERTS builds for cross-build targets.
+  * `Patch` - The patch phase injects custom scripts into the build directory, this phase is also where any custom files should be copied into the build directory before being archived.
+  * `Build` -  This is the final phase in the build flow, it produces the final wrapper binary with a payload embedded inside.
+  
+  You can add your own steps before and after phases execute. Your custom steps will also receive the build context struct, and can return a modified one to customize a build to your liking.
+
+  An example of adding a step before the fetch phase, and after the build phase:
+
+  ```elixir
+  # ... mix.exs file
+  def releases do
+    [
+      my_app: [
+        steps: [:assemble, &Burrito.wrap/1],
+        burrito: [
+          # ... other Burrito configuration
+          extra_steps: [
+            fetch: [pre: [MyCustomStepModule, AnotherCustomStepModule]],
+            build: [post: [CustomStepAgain, YetAnotherCustomStepModule]]
+          ]
+        ]
+      ]
+    ]
+  end
+  ```
+
+#### Build Targets and Qualifiers
+
+A Burrito build target is a keyword list that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
+
+Here's a definition for a build target configured for Linux x86-64:
+
+```elixir
+targets: [
+  linux: [os: :linux, cpu: :x86_64]
+]
+```
+
+Build targets can be further customized using build qualifiers. For example, a Linux build target can be configured to use `musl` instead of `glibc` using the following definition:
+
+```elixir
+targets: [
+  linux_musl: [
+    os: :linux,
+    cpu: :x86_64,
+    libc: :musl
+  ]
+]
+```
+
+Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `local_erts` qualifiers have any affect on the standard Burrito build phases and steps.
+
+Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
+
+#### Using Custom ERTS Builds
+
+The Burrito project provides precompiled builds of Erlang for the following platforms:
+
+```elixir
+[os: :darwin, cpu: :x86_64],
+[os: :linux, cpu: :x86_64, libc: :glibc], # or just [os: :linux, cpu: :x86_64]
+[os: :linux, cpu: :x86_64, libc: :musl],
+[os: :windows, cpu: :x86_64]
+```
+
+If you require a custom build of ERTS, you're able to override the precompiled binaries on a per target basis by setting local_erts to the path of your ERTS build:
+
+```elixir
+targets: [
+  linux_arm: [
+    os: :linux,
+    cpu: :arm64,
+    local_erts: "/path/to/my_custom_erts.tar.gz"
+  ]
+]
+```
+
+The `local_erts` value should be a path to a local `.tar.gz` of a release from the Erlang source tree. The structure inside the archive should mirror:
+
+```
+. (TAR Root)
+└─ otp-A.B.C-OS-ARCH
+  ├─ erts-X.Y.Z/
+  ├─ releases/
+  ├─ lib/
+  ├─ misc/
+  ├─ usr/
+  └─ Install
+```
+
+You can easily build an archive like this by doing the following commands inside the (official Erlang source code)[https://github.com/erlang/otp]:
+
+```bash
+# configure and build Erlang as you require...
+# ...
+
+export RELEASE_ROOT=$(pwd)/release/otp-A.B.C-OS-ARCH
+make release
+cd release
+tar czf my_custom_erts.tar.gz otp-A.B.C-OS-ARCH
+```
+
 ## Known Limitations and Issues
 #### Runtime Requirements
 Minimizing the runtime dependencies of the package binaries is an explicit design goal, and the requirements for each platform are as follows:
@@ -191,7 +305,7 @@ Minimizing the runtime dependencies of the package binaries is an explicit desig
 * MSVC Runtime for the Erlang version you are shipping
 * Windows 10 Build 1511 or later (for ANSI color support)
 ##### Linux
-* Any distribution with glibc
+* Any distribution with glibc (or musl libc)
 * libncurses-5 
 ##### MacOS
 * No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes codesigning

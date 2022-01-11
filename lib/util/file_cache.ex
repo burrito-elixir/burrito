@@ -44,7 +44,9 @@ defmodule Burrito.Util.FileCache do
     dir = :filename.basedir(:user_cache, @cache_namespace) |> to_string()
 
     case File.mkdir_p(dir) do
-      :ok -> dir
+      :ok ->
+        dir
+
       {:error, err} ->
         Logger.error("Failed to access cache directory")
         raise "Could not access the Burrito cache directory (#{err})"
