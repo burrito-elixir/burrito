@@ -59,7 +59,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
 
     erts_include =
-      Path.join(erts_path, ["otp-*/", "erts*/", "/include"]) |> Path.wildcard() |> List.first()
+      Path.join(erts_path, ["otp-*/", "erts*/", "/include"]) |> Path.expand() |> Path.wildcard() |> List.first()
 
     build_result =
       System.cmd("make", ["--always-make"],
@@ -80,10 +80,10 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       {_, 0} ->
         Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
-        src_priv_files = Path.join(path, ["priv/*"]) |> Path.wildcard()
+        src_priv_files = Path.join(path, ["priv/*"]) |> Path.expand() |> Path.wildcard()
 
         output_priv_dir =
-          Path.join(release_working_path, ["lib/#{dep}*/priv"]) |> Path.wildcard() |> List.first()
+          Path.join(release_working_path, ["lib/#{dep}*/priv"]) |> Path.expand() |> Path.wildcard() |> List.first()
 
         Enum.each(src_priv_files, fn file ->
           file_name = Path.basename(file)

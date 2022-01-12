@@ -58,6 +58,7 @@ defmodule Burrito.Util do
     erts_dir_name =
       :code.root_dir()
       |> Path.join(["erts-*"])
+      |> Path.expand()
       |> Path.wildcard()
       |> List.first()
       |> Path.basename()
