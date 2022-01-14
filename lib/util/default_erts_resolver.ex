@@ -16,7 +16,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
 
   def do_resolve(%Target{erts_source: {:precompiled, version: otp_version}} = target)
       when is_binary(otp_version) do
-    case ERTSUrlFetcher.fetch_version(target.os, target.qualifiers[:libc], otp_version) do
+    case ERTSUrlFetcher.fetch_version(target.os, target.qualifiers[:libc], target.cpu, otp_version) do
       %URI{} = location ->
         %Target{target | erts_source: {:url, url: location}} |> do_resolve()
 
