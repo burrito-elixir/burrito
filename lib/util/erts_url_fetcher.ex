@@ -11,9 +11,9 @@ defmodule Burrito.Util.ERTSUrlFetcher do
     %{windows: windows_releases, posix: posix_release}
   end
 
-  @spec fetch_version(atom(), atom(), String.t()) :: URI.t() | :error
-  def fetch_version(os, libc, otp_version)
-      when is_binary(otp_version) and is_atom(os) and is_atom(libc) do
+  @spec fetch_version(atom(), atom(), atom(), String.t()) :: URI.t() | :error
+  def fetch_version(os, libc, cpu, otp_version)
+      when is_binary(otp_version) and is_atom(os) and is_atom(cpu) and is_atom(libc) do
     all_versions = fetch_all_versions()
 
     res =
@@ -28,7 +28,11 @@ defmodule Burrito.Util.ERTSUrlFetcher do
         "win64"
       else
         if os == :darwin do
-          "darwin"
+          case cpu do
+            :x86_64 -> "darwin-x86_64"
+            :aarch64 -> "darwin-arm64"
+            :arm64 -> "darwin-arm64"
+          end
         else
           case libc do
             :musl -> "musl_libc"
