@@ -49,7 +49,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
   defp maybe_recompile_nif(
          {dep, path, true},
          release_working_path,
-         {:unpacked, erts_path},
+         erts_path,
          cross_target
        ) do
     dep = Atom.to_string(dep)
@@ -68,8 +68,8 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
         env: [
           {"RANLIB", "zig ranlib"},
           {"AR", "zig ar"},
-          {"CC", "zig cc -target #{cross_target} -v -shared"},
-          {"CXX", "zig c++ -target #{cross_target} -v -shared"},
+          {"CC", "zig cc -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
+          {"CXX", "zig c++ -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
           {"CXXFLAGS", "-I#{erts_include}"},
           {"CFLAGS", "-I#{erts_include}"}
         ],
