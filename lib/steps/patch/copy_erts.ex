@@ -57,7 +57,11 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
       if possible_src_path && File.exists?(possible_src_path) do
         File.rm!(lib_file)
-        File.copy!(possible_src_path, lib_file)
+
+        src_filename = Path.basename(possible_src_path)
+        lib_file_path = Path.dirname(lib_file)
+        new_lib_file = Path.join(lib_file_path, src_filename)
+        File.copy!(possible_src_path, new_lib_file)
 
         Log.info(
           :step,
