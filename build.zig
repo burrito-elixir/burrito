@@ -38,7 +38,8 @@ pub fn run_archiver() !void {
     const release_path = std.os.getenv("__BURRITO_RELEASE_PATH");
     try foilz.pack_directory(release_path.?, "./payload.foilz");
 
-    const compress_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "gzip -9nf payload.foilz" });
+    // const compress_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "gzip -9nf payload.foilz" });
+    const compress_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "xz -9ez --check=crc32 --keep payload.foilz" });
     try compress_cmd.step.make();
 }
 
@@ -49,12 +50,17 @@ pub fn build_wrapper() !void {
     const plugin_path = std.os.getenv("__BURRITO_PLUGIN_PATH");
     const is_prod = std.os.getenv("__BURRITO_IS_PROD");
 
+    var file = try std.fs.cwd().openFile("payload.foilz", .{});
+    defer file.close();
+    const uncompressed_size = try file.getEndPos();
+
     wrapper_exe = builder.addExecutable(release_name.?, "src/wrapper.zig");
 
     const exe_options = builder.addOptions();
     wrapper_exe.addOptions("build_options", exe_options);
 
     exe_options.addOption([]const u8, "RELEASE_NAME", release_name.?);
+    exe_options.addOption(u64, "UNCOMPRESSED_SIZE", uncompressed_size);
 
     if (std.mem.eql(u8, is_prod.?, "1")) {
         exe_options.addOption(bool, "IS_PROD", true);
@@ -76,6 +82,11 @@ pub fn build_wrapper() !void {
     } else {
         wrapper_exe.addPackagePath("burrito_plugin", "./_dummy_plugin.zig");
     }
+
+    wrapper_exe.addIncludeDir("src/xz");
+    wrapper_exe.addCSourceFile("src/xz/xz_crc32.c", &[0][]const u8{});
+    wrapper_exe.addCSourceFile("src/xz/xz_dec_lzma2.c", &[0][]const u8{});
+    wrapper_exe.addCSourceFile("src/xz/xz_dec_stream.c", &[0][]const u8{});
 
     wrapper_exe.install();
 

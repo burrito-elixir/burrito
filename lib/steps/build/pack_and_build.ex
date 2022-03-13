@@ -37,7 +37,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
           {"__BURRITO_IS_PROD", is_prod?()},
           {"__BURRITO_RELEASE_PATH", context.work_dir},
           {"__BURRITO_RELEASE_NAME", release_name},
-          {"__BURRITO_PLUGIN_PATH", plugin_path}
+          {"__BURRITO_PLUGIN_PATH", plugin_path},
         ],
         into: IO.stream()
       )
@@ -98,12 +98,14 @@ defmodule Burrito.Steps.Build.PackAndBuild do
 
     cache = Path.join(self_path, "zig-cache")
     out = Path.join(self_path, "zig-out")
-    payload = Path.join(self_path, "payload.foilz.gz")
+    payload = Path.join(self_path, "payload.foilz")
+    compressed_payload = Path.join(self_path, "payload.foilz.xz")
     metadata = Path.join(self_path, "_metadata.json")
 
     File.rmdir(cache)
     File.rmdir(out)
     File.rm(payload)
+    File.rm(compressed_payload)
     File.rm(metadata)
 
     :ok
