@@ -94,7 +94,7 @@ That being said, we're excited by our early use of the tooling, and are eager to
 | Windows x64 |❌|✅|✅|❌|
 | Linux |❌|✅|✅|❌|
 | MacOS (x86_64) |❌|⚠️*|✅|❌|
-| MacOS (Apple Silicon)** |❌|❌|❌|✅|
+| MacOS (Apple Silicon)** |✅|✅|✅|✅|
 
 \* NIFs implemented using `elixir-make` cannot be cross-compiled from Linux to MacOS, pending a [proposed linker change in Zig](https://github.com/ziglang/zig/issues/8180)
 
