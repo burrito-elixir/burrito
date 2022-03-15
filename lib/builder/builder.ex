@@ -119,7 +119,13 @@ defmodule Burrito.Builder do
         "Burrito will build for target:\n\tOS: #{target.os}\n\tCPU: #{target.cpu}\n\tQualifiers: #{inspect(target.qualifiers)}\n\tDebug: #{target.debug?}"
       )
 
-      Enum.reduce(@phases, initial_context, &run_phase/2)
+      phases = [
+        fetch: options[:phases][:fetch] || @phases[:fetch],
+        patch: options[:phases][:patch] || @phases[:patch],
+        build: options[:phases][:build] || @phases[:build]
+      ]
+
+      Enum.reduce(phases, initial_context, &run_phase/2)
     end)
 
     # All done!

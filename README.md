@@ -79,7 +79,7 @@ Burrito is composed of a few different components:
  5. Subsequent runs of the same version of that application will use the previously extracted payload
 
 ## Quick Start
-#### Disclaimer 
+#### Disclaimer
 Burrito was built with our specific use case in mind, and while we've found success with deploying applications packaged using Burrito to a number of production environments, the approach we're taking is still experimental.
 
 That being said, we're excited by our early use of the tooling, and are eager to accept community contributions that improve the reliability of Burrito, or that add support for additional platforms.
@@ -92,7 +92,7 @@ That being said, we're excited by our early use of the tooling, and are eager to
 |--|--|--|--|--|
 | | Windows x64 | Linux | MacOS (x86_64) | MacOS (Apple Silicon)** |
 | Windows x64 |❌|✅|✅|❌|
-| Linux |❌|✅|✅|❌| 
+| Linux |❌|✅|✅|❌|
 | MacOS (x86_64) |❌|⚠️*|✅|❌|
 | MacOS (Apple Silicon)** |❌|❌|❌|❌|
 
@@ -199,7 +199,7 @@ The three phases of the Burrito build pipeline are:
   * `Fetch` - This phase is responsible for downloading or copying in any replacement ERTS builds for cross-build targets.
   * `Patch` - The patch phase injects custom scripts into the build directory, this phase is also where any custom files should be copied into the build directory before being archived.
   * `Build` -  This is the final phase in the build flow, it produces the final wrapper binary with a payload embedded inside.
-  
+
   You can add your own steps before and after phases execute. Your custom steps will also receive the build context struct, and can return a modified one to customize a build to your liking.
 
   An example of adding a step before the fetch phase, and after the build phase:
@@ -219,6 +219,40 @@ The three phases of the Burrito build pipeline are:
         ]
       ]
     ]
+  end
+  ```
+
+  You can override default steps or phases by setting the `phases` option.
+
+  If your build phase's requirements are different to Burrito's, specify your own `assemble` step that calls `Burrito.Builder.build(release)`.
+
+  ```elixir
+    # ... mix.exs file
+    def releases do
+      [
+        my_app: [
+          steps: [:assemble, &MyPojrect.wrap/1],
+          burrito: [
+            # ... other Burrito configuration
+            phases: [
+              build: [MyProject.CustomBuildStep1, MyProject.CustomBuildStep2]
+            ]
+          ]
+        ]
+      ]
+    end
+  ```
+
+  ```elixir
+  defmodule MyProject
+    def wrap(%Mix.Relase{} = release) do
+      pre_check(release)
+      Burrito.Builder.build(release)
+    end
+
+    defp pre_check(release) do
+      # checks specific to your build.
+    end
   end
   ```
 
@@ -306,7 +340,7 @@ Minimizing the runtime dependencies of the package binaries is an explicit desig
 * Windows 10 Build 1511 or later (for ANSI color support)
 ##### Linux
 * Any distribution with glibc (or musl libc)
-* libncurses-5 
+* libncurses-5
 ##### MacOS
 * No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes codesigning
 
