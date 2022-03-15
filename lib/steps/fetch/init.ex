@@ -25,8 +25,8 @@ defmodule Burrito.Steps.Fetch.Init do
     current_erts_version = Util.get_erts_version()
     current_release_version = context.mix_release.version
 
-    releases_dirs = Path.join(context.work_dir, ["/releases", "/*.*.*"]) |> Path.wildcard()
-    erts_dirs = Path.join(context.work_dir, ["/erts-*"]) |> Path.wildcard()
+    releases_dirs = Path.join(context.work_dir, ["/releases", "/*.*.*"]) |> Path.expand() |> Path.wildcard()
+    erts_dirs = Path.join(context.work_dir, ["/erts-*"]) |> Path.expand() |> Path.wildcard()
 
     to_be_deleted =
       Enum.filter(releases_dirs, fn dir -> Path.basename(dir) != current_release_version end) ++

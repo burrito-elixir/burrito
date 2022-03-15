@@ -54,6 +54,7 @@ defmodule Burrito.Steps.Patch.CopyScripts do
   defp erts_dir(release_path) do
     release_path
     |> Path.join("erts-*/bin")
+    |> Path.expand()
     |> Path.wildcard()
     |> hd()
   end
