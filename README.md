@@ -94,11 +94,11 @@ That being said, we're excited by our early use of the tooling, and are eager to
 | Windows x64 |❌|✅|✅|❌|
 | Linux |❌|✅|✅|❌|
 | MacOS (x86_64) |❌|⚠️*|✅|❌|
-| MacOS (Apple Silicon)** |✅|✅|✅|✅|
+| MacOS (Apple Silicon)** |✅|⚠️*|✅|✅|
 
 \* NIFs implemented using `elixir-make` cannot be cross-compiled from Linux to MacOS, pending a [proposed linker change in Zig](https://github.com/ziglang/zig/issues/8180)
 
-** It's possible that Rosetta can execute the x86_64 MacOS binaries, however we do not have access to an Apple Silicon machine to verify this. Automated testing of Apple silicon builds is blocked on [support for Apple Silicon in Github Actions](https://github.com/actions/virtual-environments/issues/2187).
+** Automated testing and building of Apple silicon Erlang builds is blocked on [support for Apple Silicon in Github Actions](https://github.com/actions/virtual-environments/issues/2187).
 
 ----
 
