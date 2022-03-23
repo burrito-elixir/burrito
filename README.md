@@ -106,7 +106,7 @@ You must have the following installed and in your PATH:
 
 * Zig (0.9.0) -- `zig`
 * Gzip -- `gzip`
-* 7z -- `7z`
+* Xz -- `xz`
 
 ----
 
@@ -280,7 +280,7 @@ targets: [
 ]
 ```
 
-Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `local_erts` qualifiers have any affect on the standard Burrito build phases and steps.
+Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `custom_erts` qualifiers have any affect on the standard Burrito build phases and steps.
 
 Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
 
@@ -295,19 +295,19 @@ The Burrito project provides precompiled builds of Erlang for the following plat
 [os: :windows, cpu: :x86_64]
 ```
 
-If you require a custom build of ERTS, you're able to override the precompiled binaries on a per target basis by setting local_erts to the path of your ERTS build:
+If you require a custom build of ERTS, you're able to override the precompiled binaries on a per target basis by setting `custom_erts` to the path of your ERTS build:
 
 ```elixir
 targets: [
   linux_arm: [
     os: :linux,
     cpu: :arm64,
-    local_erts: "/path/to/my_custom_erts.tar.gz"
+    custom_erts: "/path/to/my_custom_erts.tar.gz"
   ]
 ]
 ```
 
-The `local_erts` value should be a path to a local `.tar.gz` of a release from the Erlang source tree. The structure inside the archive should mirror:
+The `custom_erts` value should be a path to a local `.tar.gz` of a release from the Erlang source tree. The structure inside the archive should mirror:
 
 ```
 . (TAR Root)
