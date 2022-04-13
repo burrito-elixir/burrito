@@ -19,16 +19,17 @@
 //                 │         │       File Bytes       │◄───────── Raw bytes of file
 //                 │         │                        │
 //                 │         ├────────────────────────┤
-//                 └──────── │  u64   File Mode       │◄───────── POSIX File Mode (Ignored on Windows)
+//                 └──────── │   c_uint  File Mode    │◄───────── POSIX File Mode (Ignored on Windows)
 //                           ├────────────────────────┤
 //                           │                        │
 //                           │ Magic Trailer: 'FOILZ' │
 //                           │                        │
 //                           └────────────────────────┘
 //
-// There can be many file records inside a FOILZ archive, after packing, it is gzip compressed at level 9 (best).
+// There can be many file records inside a FOILZ archive, after packing, it is gzip or xz compressed.
 // At runtime, we decompress it in memory and write the files to disk in a common location.
 /////
+
 const builtin = @import("builtin");
 const std = @import("std");
 
@@ -37,6 +38,8 @@ const log = std.log;
 const mem = std.mem;
 const os = std.os;
 const gzip = std.compress.gzip;
+
+const xz = @cImport(@cInclude("xz.h"));
 
 const MAGIC = "FOILZ";
 const MAX_READ_SIZE = 1000000000;
@@ -109,30 +112,45 @@ pub fn write_magic_number(foilz_writer: *const fs.File.Writer) !void {
     _ = try foilz_writer.write(MAGIC);
 }
 
-pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, data: []const u8, mode: u64) !void {
+pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, data: []const u8, mode: c_uint) !void {
     _ = try foilz_writer.writeInt(u64, name.len, .Little);
     _ = try foilz_writer.write(name);
     _ = try foilz_writer.writeInt(u64, data.len, .Little);
     _ = try foilz_writer.write(data);
-    _ = try foilz_writer.writeInt(u64, mode, .Little);
+    _ = try foilz_writer.writeInt(c_uint, mode, .Little);
 }
 
 pub fn validate_magic(first_bytes: []const u8) bool {
     return mem.eql(u8, first_bytes, MAGIC);
 }
 
-pub fn unpack_files(data: []const u8, dest_path: []const u8) !void {
+pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: u64) !void {
     // Decompress the data in the payload
+
     var decompress_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer decompress_arena.deinit();
     var allocator = decompress_arena.allocator();
 
-    var stream = std.io.fixedBufferStream(data);
-    var gzip_stream = try gzip.gzipStream(allocator, stream.reader());
-    defer gzip_stream.deinit();
+    var decompressed: []u8 = try allocator.alloc(u8, uncompressed_size);
 
-    // Raw payload data
-    const decompressed = try gzip_stream.reader().readAllAlloc(allocator, MAX_READ_SIZE);
+    var xz_buffer: xz.xz_buf = .{
+        .in = data.ptr,
+        .in_size = data.len,
+        .out = decompressed.ptr,
+        .out_size = uncompressed_size,
+        .in_pos = 0,
+        .out_pos = 0,
+    };
+
+    xz.xz_crc32_init();
+    const status = xz.xz_dec_init(xz.XZ_SINGLE, 0);
+    const ret = xz.xz_dec_run(status, &xz_buffer);
+    xz.xz_dec_end(status);
+
+    if (ret != xz.XZ_STREAM_END) {
+        std.log.err("XZ/LZMA Decode Failed: {}", .{ret});
+        return error.ParseError;
+    }
 
     // Validate the header of the payload
     if (!validate_magic(decompressed[0..5])) {
@@ -165,8 +183,8 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8) !void {
 
         //////
         // Read the mode for this file
-        var file_mode = std.mem.readIntSliceLittle(u64, decompressed[cursor .. cursor + @sizeOf(u64)]);
-        cursor = cursor + @sizeOf(u64);
+        var file_mode = std.mem.readIntSliceLittle(c_uint, decompressed[cursor .. cursor + @sizeOf(c_uint)]);
+        cursor = cursor + @sizeOf(c_uint);
 
         //////
         // Write the file

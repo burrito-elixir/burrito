@@ -28,22 +28,35 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
     # Clean out current bins
     dest_bin_path =
-      Path.join(context.work_dir, ["erts-*/", "bin/"]) |> Path.expand() |> Path.wildcard() |> List.first()
+      Path.join(context.work_dir, ["erts-*/", "bin/"])
+      |> Path.expand()
+      |> Path.wildcard()
+      |> List.first()
 
     File.rm_rf!(dest_bin_path)
     File.mkdir!(dest_bin_path)
 
     # Copy in new bins from unpacked ERTS
     unpacked_path =
-      Path.join(erts_location, ["otp-*/", "erts-*/"]) |> Path.expand() |> Path.wildcard() |> List.first()
+      Path.join(erts_location, ["otp-*/", "erts-*/"])
+      |> Path.expand()
+      |> Path.wildcard()
+      |> List.first()
 
     src_bin_path = Path.join(unpacked_path, ["bin/"])
 
     File.cp_r!(src_bin_path, dest_bin_path)
 
     # The ERTS comes with some pre-built NIFs, so we need to replace those
-    libs_to_replace = Path.join(context.work_dir, "lib/**/*.{so,dll}") |> Path.expand() |> Path.wildcard()
-    src_lib_path = Path.join(erts_location, ["otp-*/", "lib/"]) |> Path.expand() |> Path.wildcard() |> List.first()
+    libs_to_replace =
+      Path.join(context.work_dir, "lib/**/*.{so,dll}") |> Path.expand() |> Path.wildcard()
+
+    src_lib_path =
+      Path.join(erts_location, ["otp-*/", "lib/"])
+      |> Path.expand()
+      |> Path.wildcard()
+      |> List.first()
+
     dest_lib_path = Path.join(context.work_dir, ["lib/"]) |> Path.expand()
 
     Enum.each(libs_to_replace, fn lib_file ->

@@ -30,7 +30,7 @@ const metadata = @import("metadata.zig");
 const MetaStruct = metadata.MetaStruct;
 
 // Payload
-pub const FOILZ_PAYLOAD = @embedFile("../payload.foilz.gz");
+pub const FOILZ_PAYLOAD = @embedFile("../payload.foilz.xz");
 pub const RELEASE_METADATA_JSON = @embedFile("../_metadata.json");
 
 // Memory allocator
@@ -181,7 +181,7 @@ pub fn main() anyerror!void {
 
 fn do_payload_install(install_dir: []const u8, metadata_path: []const u8) !void {
     // Unpack the files
-    try foilz.unpack_files(FOILZ_PAYLOAD, install_dir);
+    try foilz.unpack_files(FOILZ_PAYLOAD, install_dir, build_options.UNCOMPRESSED_SIZE);
 
     // Write metadata file
     const file = try fs.createFileAbsolute(metadata_path, .{ .truncate = true });
