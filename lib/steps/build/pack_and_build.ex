@@ -37,7 +37,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
           {"__BURRITO_IS_PROD", is_prod?()},
           {"__BURRITO_RELEASE_PATH", context.work_dir},
           {"__BURRITO_RELEASE_NAME", release_name},
-          {"__BURRITO_PLUGIN_PATH", plugin_path},
+          {"__BURRITO_PLUGIN_PATH", plugin_path}
         ],
         into: IO.stream()
       )
