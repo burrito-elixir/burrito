@@ -1,4 +1,6 @@
 defmodule Burrito.Util.ERTSUrlFetcher do
+  alias Burrito.Builder.Log
+
   @versions_url_darwin_linux "https://api.github.com/repos/burrito-elixir/erlang-builder/releases?per_page=100"
   @versions_url_windows "https://api.github.com/repos/erlang/otp/releases?per_page=100"
 
@@ -6,12 +8,21 @@ defmodule Burrito.Util.ERTSUrlFetcher do
   def fetch_all_versions() do
     {:ok, _} = Application.ensure_all_started(:req)
 
-    windows_releases = get_gh_pages(@versions_url_windows)
-    posix_release = get_gh_pages(@versions_url_darwin_linux)
-    %{windows: windows_releases, posix: posix_release}
+    with {:ok, windows_releases} <- get_gh_pages(@versions_url_windows),
+         {:ok, posix_releases} <- get_gh_pages(@versions_url_darwin_linux) do
+      %{windows: windows_releases, posix: posix_releases}
+    else
+      {:error, message} ->
+        Log.error(
+          :step,
+          "Error occurred when trying to fetch releases from Github\n\t Reason: #{message}"
+        )
+
+        %{windows: [], posix: []}
+    end
   end
 
-  @spec fetch_version(atom(), atom(), atom(), String.t()) :: URI.t() | :error
+  @spec fetch_version(atom(), atom(), atom(), String.t()) :: URI.t() | {:error, atom()}
   def fetch_version(os, libc, cpu, otp_version)
       when is_binary(otp_version) and is_atom(os) and is_atom(cpu) and is_atom(libc) do
     all_versions = fetch_all_versions()
@@ -61,7 +72,7 @@ defmodule Burrito.Util.ERTSUrlFetcher do
       {_, url} = result
       url |> URI.parse()
     else
-      :error
+      {:error, :no_result}
     end
   end
 
@@ -70,13 +81,13 @@ defmodule Burrito.Util.ERTSUrlFetcher do
     # then return the full list of them
     case Req.get!(url <> "&page=#{page}") do
       %Req.Response{status: 200, body: []} ->
-        acc
+        {:ok, acc}
 
       %Req.Response{status: 200, body: data} ->
         get_gh_pages(url, page + 1, data ++ acc)
 
-      _ ->
-        acc
+      %Req.Response{} = bad_response ->
+        {:error, bad_response.body["message"]}
     end
   end
 end

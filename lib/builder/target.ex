@@ -5,7 +5,9 @@ defmodule Burrito.Builder.Target do
   alias Burrito.Builder.Log
   alias Burrito.Util
 
-  @type erts_source :: {:runtime | :precompiled | :local | :local_unpacked | :url, keyword()}
+  @type erts_source ::
+          {:unresolved | :runtime | :precompiled | :local | :local_unpacked | :url,
+           keyword() | atom()}
 
   @old_targets [:darwin, :win64, :linux, :linux_musl]
 
@@ -13,13 +15,13 @@ defmodule Burrito.Builder.Target do
   @type target_definition :: keyword() | legacy_definition()
 
   typedstruct enforce: true do
-    field :alias, atom()
-    field :cpu, atom()
-    field :os, atom()
-    field :cross_build, boolean
-    field :qualifiers, keyword()
-    field :erts_source, erts_source()
-    field :debug?, boolean()
+    field(:alias, atom())
+    field(:cpu, atom())
+    field(:os, atom())
+    field(:cross_build, boolean)
+    field(:qualifiers, keyword())
+    field(:erts_source, erts_source())
+    field(:debug?, boolean())
   end
 
   @spec init_target(atom(), target_definition()) :: t()
