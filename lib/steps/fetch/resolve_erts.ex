@@ -29,7 +29,15 @@ defmodule Burrito.Steps.Fetch.ResolveERTS do
     else
       Log.info(:step, "Resolving ERTS: #{inspect(context.target.erts_source)}")
       resolved_erts_target = ERTSResolver.resolve(context.target)
-      %Context{context | target: resolved_erts_target}
+
+      case resolved_erts_target.erts_source do
+        {:unresolved, _} ->
+          Log.error(:step, "Cannot resolve ERTS, please check for errors in the log above.")
+          %Context{context | halted: true}
+
+        _ ->
+          %Context{context | target: resolved_erts_target}
+      end
     end
   end
 

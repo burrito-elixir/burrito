@@ -10,6 +10,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
   @behaviour ERTSResolver
 
   @impl ERTSResolver
+  @spec do_resolve(Burrito.Builder.Target.t()) :: Burrito.Builder.Target.t()
   def do_resolve(%Target{erts_source: {:runtime, _}} = target) do
     %Target{target | erts_source: {:runtime, version: Util.get_otp_version()}}
   end
@@ -25,8 +26,13 @@ defmodule Burrito.Util.DefaultERTSResolver do
       %URI{} = location ->
         %Target{target | erts_source: {:url, url: location}} |> do_resolve()
 
-      :error ->
-        target
+      {:error, err} ->
+        Log.error(
+          :step,
+          "Failed to fetch a precompiled Erlang (version #{otp_version})!\n\t Reason: #{translate_resolve_error(err)}"
+        )
+
+        %Target{target | erts_source: {:unresolved, err}}
     end
   end
 
@@ -90,4 +96,8 @@ defmodule Burrito.Util.DefaultERTSResolver do
     FileCache.put_if_not_exist(cache_key, data)
     data
   end
+
+  defp translate_resolve_error(:no_result),
+    do:
+      "No pre-compiled version matching this combination of platform, arch, and libc was found on our CI system."
 end
