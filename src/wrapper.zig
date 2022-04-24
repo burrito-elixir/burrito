@@ -22,7 +22,7 @@ const shutil = @import("shutil.zig");
 const win_asni = @cImport(@cInclude("win_ansi_fix.h"));
 
 // Install dir suffix
-const install_suffix = ".tinfoil";
+const install_suffix = ".burrito";
 
 const plugin = @import("burrito_plugin");
 

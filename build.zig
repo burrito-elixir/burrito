@@ -72,9 +72,11 @@ pub fn build_wrapper() !void {
     wrapper_exe.setBuildMode(mode.*);
 
     if (target.isWindows()) {
-        wrapper_exe.linkSystemLibrary("c");
         wrapper_exe.addIncludeDir("src/");
     }
+
+    // Link standard C libary to the wrapper
+    wrapper_exe.linkSystemLibrary("c");
 
     if (plugin_path) |plugin| {
         log.info("Plugin found! {s} 🔌", .{plugin});
