@@ -4,6 +4,8 @@ defmodule Burrito.Steps.Build.PackAndBuild do
   alias Burrito.Builder.Step
   alias Burrito.Builder.Target
 
+  alias Burrito.Util.ZigFetch
+
   @behaviour Step
 
   @impl Step
@@ -31,7 +33,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Path.join(context.work_dir, ["/lib", "/.burrito"]) |> File.touch!()
 
     build_result =
-      System.cmd("zig", ["build"] ++ zig_build_args,
+      System.cmd(get_zig_path(), ["build"] ++ zig_build_args,
         cd: context.self_dir,
         env: [
           {"__BURRITO_IS_PROD", is_prod?()},
@@ -69,7 +71,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
   defp create_metadata_file(self_path, args, release) do
     Log.info(:step, "Generating wrapper metadata file...")
 
-    {zig_version_string, 0} = System.cmd("zig", ["version"], cd: self_path)
+    {zig_version_string, 0} = System.cmd(get_zig_path(), ["version"], cd: self_path)
 
     metadata_map = %{
       app_name: Atom.to_string(release.name),
@@ -109,5 +111,9 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     File.rm(metadata)
 
     :ok
+  end
+
+  defp get_zig_path() do
+    [ZigFetch.compute_install_location(), "/zig"] |> Path.join()
   end
 end

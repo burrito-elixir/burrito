@@ -4,6 +4,8 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
   alias Burrito.Builder.Step
   alias Burrito.Builder.Target
 
+  alias Burrito.Util.ZigFetch
+
   @behaviour Step
 
   @impl Step
@@ -71,15 +73,16 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       System.cmd("make", ["all", "--always-make"],
         cd: path,
         stderr_to_stdout: true,
-        env: [
-          {"MIX_APP_PATH", output_priv_dir},
-          {"RANLIB", "zig ranlib"},
-          {"AR", "zig ar"},
-          {"CC",
-           "zig cc -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
-          {"CXX",
-           "zig c++ -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"}
-        ] ++ erts_env,
+        env:
+          [
+            {"MIX_APP_PATH", output_priv_dir},
+            {"RANLIB", "#{get_zig_path()} ranlib"},
+            {"AR", "#{get_zig_path()} ar"},
+            {"CC",
+             "#{get_zig_path()} cc -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
+            {"CXX",
+             "#{get_zig_path()} c++ -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"}
+          ] ++ erts_env,
         into: IO.stream()
       )
 
@@ -87,12 +90,14 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       {_, 0} ->
         Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
-        src_priv_files = Path.join(output_priv_dir, ["priv/*"]) |> Path.expand() |> Path.wildcard()
+        src_priv_files =
+          Path.join(output_priv_dir, ["priv/*"]) |> Path.expand() |> Path.wildcard()
 
         final_output_priv_dir = Path.join(output_priv_dir, "priv")
 
         Enum.each(src_priv_files, fn file ->
           file_name = Path.basename(file)
+
           if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
             new_file_name = String.replace_trailing(file_name, ".so", ".dll")
             dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
@@ -138,5 +143,9 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       {"ERL_INTERFACE_LIB_DIR", ei_lib},
       {"ERTS_INCLUDE_DIR", erts_include}
     ]
+  end
+
+  defp get_zig_path() do
+    [ZigFetch.compute_install_location(), "/zig"] |> Path.join()
   end
 end
