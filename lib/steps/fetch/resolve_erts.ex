@@ -13,6 +13,8 @@ defmodule Burrito.Steps.Fetch.ResolveERTS do
     # {os, cpu, libc (linux only)}
     {:windows, :x86_64, nil},
     {:darwin, :x86_64, nil},
+    {:darwin, :aarch64, nil},
+    {:darwin, :arm64, nil},
     {:linux, :x86_64, :glibc},
     {:linux, :x86_64, :musl}
   ]

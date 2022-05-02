@@ -83,10 +83,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       {_, 0} ->
         Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
-        src_priv_files =
-          Path.join(path, ["_build/", Mix.env() |> to_string(), "/lib/", dep, "/priv/*"])
-          |> Path.expand()
-          |> Path.wildcard()
+        src_priv_files = Path.join(path, ["priv/*"]) |> Path.expand() |> Path.wildcard()
 
         output_priv_dir =
           Path.join(release_working_path, ["lib/#{dep}*/priv"])
