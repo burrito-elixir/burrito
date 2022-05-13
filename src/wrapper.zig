@@ -104,6 +104,14 @@ pub fn main() anyerror!void {
 
     // If we need an install, install the payload onto the target machine
     if (needs_install or wants_clean_install) {
+        // If running a clean install (probably a debug build)
+        // delete existing install directory if it's present to prevent a MacOS SIP issue
+        // when "replacing" a mach-o in place
+        if (wants_clean_install and !needs_install) {
+            try fs.deleteTreeAbsolute(install_dir);
+            try std.fs.cwd().makePath(install_dir);
+        }
+
         try do_payload_install(install_dir, metadata_path);
     } else {
         log.debug("Skipping archive unpacking, this machine already has the app installed!", .{});
