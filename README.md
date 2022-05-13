@@ -231,7 +231,7 @@ The three phases of the Burrito build pipeline are:
     def releases do
       [
         my_app: [
-          steps: [:assemble, &MyPojrect.wrap/1],
+          steps: [:assemble, &MyProject.wrap/1],
           burrito: [
             # ... other Burrito configuration
             phases: [
@@ -245,7 +245,7 @@ The three phases of the Burrito build pipeline are:
 
   ```elixir
   defmodule MyProject
-    def wrap(%Mix.Relase{} = release) do
+    def wrap(%Mix.Release{} = release) do
       pre_check(release)
       Burrito.Builder.build(release)
     end
