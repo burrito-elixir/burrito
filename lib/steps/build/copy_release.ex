@@ -35,6 +35,12 @@ defmodule Burrito.Steps.Build.CopyRelease do
 
     output_bin_path = Path.join(bin_out_path, [bin_name])
 
+    # Delete the existing bin, to prevent a MacOS bug
+    # where exiting bins modified in place cause SIP to be upset
+    if File.exists?(output_bin_path) do
+      File.rm!(output_bin_path)
+    end
+
     File.copy!(bin_path, output_bin_path)
     File.rm!(bin_path)
 
