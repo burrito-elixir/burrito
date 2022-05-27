@@ -19,7 +19,7 @@
 //                 │         │       File Bytes       │◄───────── Raw bytes of file
 //                 │         │                        │
 //                 │         ├────────────────────────┤
-//                 └──────── │   c_uint  File Mode    │◄───────── POSIX File Mode (Ignored on Windows)
+//                 └──────── │   usize   File Mode    │◄───────── POSIX File Mode (Ignored on Windows)
 //                           ├────────────────────────┤
 //                           │                        │
 //                           │ Magic Trailer: 'FOILZ' │
@@ -112,12 +112,12 @@ pub fn write_magic_number(foilz_writer: *const fs.File.Writer) !void {
     _ = try foilz_writer.write(MAGIC);
 }
 
-pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, data: []const u8, mode: c_uint) !void {
+pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, data: []const u8, mode: usize) !void {
     _ = try foilz_writer.writeInt(u64, name.len, .Little);
     _ = try foilz_writer.write(name);
     _ = try foilz_writer.writeInt(u64, data.len, .Little);
     _ = try foilz_writer.write(data);
-    _ = try foilz_writer.writeInt(c_uint, mode, .Little);
+    _ = try foilz_writer.writeInt(usize, mode, .Little);
 }
 
 pub fn validate_magic(first_bytes: []const u8) bool {
@@ -183,8 +183,8 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
 
         //////
         // Read the mode for this file
-        var file_mode = std.mem.readIntSliceLittle(c_uint, decompressed[cursor .. cursor + @sizeOf(c_uint)]);
-        cursor = cursor + @sizeOf(c_uint);
+        var file_mode = std.mem.readIntSliceLittle(usize, decompressed[cursor .. cursor + @sizeOf(usize)]);
+        cursor = cursor + @sizeOf(usize);
 
         //////
         // Write the file
