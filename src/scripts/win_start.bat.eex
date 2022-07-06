@@ -42,7 +42,7 @@ if "!RELEASE_DISTRIBUTION!" == "none" (
   set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "!RELEASE_NODE!"
 )
 
-"!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
+call "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
   --cookie "!RELEASE_COOKIE!" ^
   !RELEASE_DISTRIBUTION_FLAG! ^
   --erl "-mode !RELEASE_MODE!" ^
@@ -50,3 +50,5 @@ if "!RELEASE_DISTRIBUTION!" == "none" (
   --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT!" ^
   --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
   --vm-args "!RELEASE_VM_ARGS!" -- %*
+
+exit /b %ERRORLEVEL%
