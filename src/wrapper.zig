@@ -179,7 +179,13 @@ pub fn main() anyerror!void {
 
         log.debug("CLI List: {s}", .{final_args});
 
-        _ = try win_child_proc.spawnAndWait();
+        const win_term = try win_child_proc.spawnAndWait();
+        switch (win_term) {
+            .Exited => |code| {
+                std.process.exit(code);
+            },
+            else => std.process.exit(1),
+        }
     } else {
         const cli = &[_][]const u8{ base_bin_path, "start", exe_name, args_string };
         log.debug("CLI List: {s}", .{cli});
