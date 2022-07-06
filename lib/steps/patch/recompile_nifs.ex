@@ -4,6 +4,8 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
   alias Burrito.Builder.Step
   alias Burrito.Builder.Target
 
+  alias Burrito.Util.ZigFetch
+
   @behaviour Step
 
   @impl Step
@@ -69,10 +71,10 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
         cd: path,
         stderr_to_stdout: true,
         env: [
-          {"RANLIB", "zig ranlib"},
-          {"AR", "zig ar"},
-          {"CC", "zig cc -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
-          {"CXX", "zig c++ -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
+          {"RANLIB", "#{get_zig_path()} ranlib"},
+          {"AR", "#{get_zig_path()} ar"},
+          {"CC", "#{get_zig_path()} cc -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
+          {"CXX", "#{get_zig_path()} c++ -target #{cross_target} -v -shared -Wl,-undefined=dynamic_lookup"},
           {"CXXFLAGS", "-I#{erts_include}"},
           {"CFLAGS", "-I#{erts_include}"}
         ],
@@ -105,5 +107,9 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
         Log.error(:step, output)
         exit(1)
     end
+  end
+
+  defp get_zig_path() do
+    [ZigFetch.compute_install_location(), "/zig"] |> Path.join()
   end
 end

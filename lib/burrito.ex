@@ -1,10 +1,15 @@
 defmodule Burrito do
   alias Burrito.Builder
   alias Burrito.Builder.Log
+  alias Burrito.Util.ZigFetch
 
   @spec wrap(Mix.Release.t()) :: Mix.Release.t()
   def wrap(%Mix.Release{} = release) do
     pre_check()
+
+    {:ok, _} = Application.ensure_all_started(:req)
+
+    ZigFetch.auto_fetch()
     Builder.build(release)
   end
 
@@ -13,10 +18,10 @@ defmodule Burrito do
   end
 
   defp pre_check() do
-    if Enum.any?(~w(zig xz), &(System.find_executable(&1) == nil)) do
+    if Enum.any?(~w(xz), &(System.find_executable(&1) == nil)) do
       Log.error(
         :build,
-        "You MUST have `zig` and `xz` installed to use Burrito, we couldn't find all of them in your PATH!"
+        "You MUST have `xz` installed to use Burrito! We couldn't find it in your PATH!"
       )
 
       exit(1)

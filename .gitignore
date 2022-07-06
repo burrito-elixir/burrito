@@ -51,3 +51,4 @@ erl_crash.dump
 *.beam
 /config/*.secret.exs
 .elixir_ls/
+/zig_bin*

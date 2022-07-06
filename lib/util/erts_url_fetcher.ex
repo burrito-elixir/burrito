@@ -6,8 +6,6 @@ defmodule Burrito.Util.ERTSUrlFetcher do
 
   @spec fetch_all_versions() :: %{windows: list(), posix: list()}
   def fetch_all_versions() do
-    {:ok, _} = Application.ensure_all_started(:req)
-
     with {:ok, windows_releases} <- get_gh_pages(@versions_url_windows),
          {:ok, posix_releases} <- get_gh_pages(@versions_url_darwin_linux) do
       %{windows: windows_releases, posix: posix_releases}
