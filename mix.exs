@@ -20,7 +20,7 @@ defmodule Burrito.MixProject do
   defp deps do
     [
       {:req, "~> 0.2.0"},
-      {:typed_struct, "~> 0.2.1", runtime: false},
+      {:typed_struct, "~> 0.2.0 or ~> 0.3.0", runtime: false},
       {:jason, "~> 1.2"}
     ]
   end
