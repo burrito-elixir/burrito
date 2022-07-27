@@ -2,7 +2,6 @@ defmodule Burrito.Steps.Fetch.Init do
   alias Burrito.Builder.Context
   alias Burrito.Builder.Step
   alias Burrito.Builder.Log
-  alias Burrito.Util
 
   @behaviour Step
 
@@ -22,7 +21,7 @@ defmodule Burrito.Steps.Fetch.Init do
     # we need to clean out any ERTS versions and releases that don't match the one we are currently building
     # we're in a copied work_dir so we can safely just delete anything in here
 
-    current_erts_version = Util.get_erts_version()
+    current_erts_version = context.mix_release.erts_version |> to_string()
     current_release_version = context.mix_release.version
 
     releases_dirs =
