@@ -52,17 +52,4 @@ defmodule Burrito.Util do
 
     String.trim(opt_version)
   end
-
-  @spec get_erts_version :: String.t()
-  def get_erts_version() do
-    erts_dir_name =
-      :code.root_dir()
-      |> Path.join(["erts-*"])
-      |> Path.expand()
-      |> Path.wildcard()
-      |> List.first()
-      |> Path.basename()
-
-    String.split(erts_dir_name, "-") |> Enum.at(1)
-  end
 end
