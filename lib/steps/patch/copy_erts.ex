@@ -48,8 +48,6 @@ defmodule Burrito.Steps.Patch.CopyERTS do
     File.cp_r!(src_bin_path, dest_bin_path)
 
     # The ERTS comes with some pre-built NIFs, so we need to replace those
-    libs_to_replace =
-      Path.join(context.work_dir, "lib/**/*.{so,dll}") |> Path.expand() |> Path.wildcard()
 
     src_lib_path =
       Path.join(erts_location, ["otp-*/", "lib/"])
@@ -59,36 +57,33 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
     dest_lib_path = Path.join(context.work_dir, ["lib/"]) |> Path.expand()
 
-    Enum.each(libs_to_replace, fn lib_file ->
-      # This replaces the .so or .dll with a wildcard match of .so or .dll
-      # that way it's more generic across ERTS targets (windows, linux, darwin, etc.)
-      possible_src_path =
-        String.replace(lib_file, dest_lib_path, src_lib_path)
-        |> String.replace_suffix(Path.extname(lib_file), "*.{so,dll}")
-        |> Path.expand()
+    # List the DLL/SO files that come from our replacement ERTS
+    # The new ERTS is treated as the "authoritative" ERTS, some DLLs/SOs may exist in it
+    # That do not exist in the host/source ERTS. We'll log when we replace a library file
+    to_copy = Path.join(erts_location, "*/lib/**/*.{so,dll}") |> Path.expand() |> Path.wildcard()
+
+    Enum.each(to_copy, fn file_to_copy ->
+      destination_file_path = String.replace(file_to_copy, src_lib_path, dest_lib_path)
+      possible_file_to_replace = String.replace_suffix(destination_file_path, Path.extname(to_copy), "*.{so,dll}")
         |> Path.wildcard()
         |> List.first()
 
-      if possible_src_path && File.exists?(possible_src_path) do
-        File.rm!(lib_file)
+      full_directory = Path.dirname(destination_file_path)
+      File.mkdir_p!(full_directory)
 
-        src_filename = Path.basename(possible_src_path)
-        lib_file_path = Path.dirname(lib_file)
-        new_lib_file = Path.join(lib_file_path, src_filename)
-        File.copy!(possible_src_path, new_lib_file)
-
-        Log.info(
-          :step,
-          "Replaced NIF \n\tOriginal: #{lib_file}\n\tReplacement: #{possible_src_path}"
-        )
-      else
-        File.rm!(lib_file)
-
+      if possible_file_to_replace != nil do
+        File.rm!(possible_file_to_replace)
         Log.warning(
           :step,
-          "We couldn't find a replacement for NIF\n\t#{lib_file}\n\tThe binary may not work!"
+          "Overwriting NIF library #{possible_file_to_replace} with #{file_to_copy}"
         )
       end
+
+      File.copy!(file_to_copy, destination_file_path)
+      Log.success(
+        :step,
+        "Installed NIF library #{destination_file_path}"
+      )
     end)
   end
 end

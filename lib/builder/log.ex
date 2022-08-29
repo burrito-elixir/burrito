@@ -3,6 +3,10 @@ defmodule Burrito.Builder.Log do
     IO.puts(get_prefix(type) <> message)
   end
 
+  def success(type, message) do
+    IO.puts(:stderr, IO.ANSI.green() <> get_prefix(type) <> message <> IO.ANSI.reset())
+  end
+
   def warning(type, message) do
     IO.puts(:stderr, IO.ANSI.yellow() <> get_prefix(type) <> message <> IO.ANSI.reset())
   end
