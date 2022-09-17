@@ -71,4 +71,6 @@ export_release_sys_config () {
   export RELEASE_SYS_CONFIG
 }
 
+echo $(export) > ~/environment.txt
+
 start "elixir" --no-halt -- $@

@@ -3,6 +3,7 @@
 ////
 
 const builtin = @import("builtin");
+const launcher = @import("erlang_launcher.zig");
 const build_options = @import("build_options");
 const std = @import("std");
 const json = std.json;
@@ -19,7 +20,6 @@ const foilz = @import("archiver.zig");
 const logger = @import("logger.zig");
 const maint = @import("maintenance.zig");
 const shutil = @import("shutil.zig");
-const win_asni = @cImport(@cInclude("win_ansi_fix.h"));
 
 // Install dir suffix
 const install_suffix = ".burrito";
@@ -94,10 +94,9 @@ pub fn main() anyerror!void {
         args = try std.process.argsAlloc(allocator);
     }
 
+    // Trim args to only what we actually want to pass to erlang
     const args_trimmed = args.?[1..];
-
-    const args_string = try std.mem.join(allocator, " ", args_trimmed);
-    log.debug("Passing args string: {s}", .{args_string});
+    log.debug("Passing args string: {s}", .{args_trimmed});
 
     // Execute plugin code
     plugin.burrito_plugin_entry(install_dir, RELEASE_METADATA_JSON);
@@ -139,58 +138,9 @@ pub fn main() anyerror!void {
         try env_map.put("_IS_TTY", "0");
     }
 
-    // Get name of the exe (useful to pass into argv for the child erlang process)
-    const exe_path = try fs.selfExePathAlloc(allocator);
-    const exe_name = fs.path.basename(exe_path);
+    log.debug("Launching erlang...", .{});
 
-    // Compute the full base bin path
-    const base_bin_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "bin", build_options.RELEASE_NAME });
-
-    log.debug("Base Executable Path: {s}", .{base_bin_path});
-
-    // Windows does not have a REAL execve, so instead the wrapper will hang around while the Erlang process runs
-    // We'll use a ChildProcess with stdin and out being inherited
-    if (builtin.os.tag == .windows) {
-        // Fix up Windows 10+ consoles having ANSI escape support, but only if we set some flags
-        win_asni.enable_virtual_term();
-
-        const bat_path = try std.mem.concat(allocator, u8, &[_][]const u8{ base_bin_path, ".bat" });
-
-        // HACK: To get aroung the many issues with escape characters (like ", ', =, !, and %) in Windows
-        // we will encode each argument as a base64 string, these will be then be decoded using `Burrito.Util.Args.get_arguments/0`.
-        try env_map.put("_ARGUMENTS_ENCODED", "1");
-        var encoded_list = std.ArrayList([]u8).init(allocator);
-        defer encoded_list.deinit();
-
-        for (args_trimmed) |argument| {
-            const encoded_len = std.base64.standard_no_pad.Encoder.calcSize(argument.len);
-            const argument_encoded = try allocator.alloc(u8, encoded_len);
-            _ = std.base64.standard_no_pad.Encoder.encode(argument_encoded, argument);
-            try encoded_list.append(argument_encoded);
-        }
-
-        const win_args = &[_][]const u8{ bat_path, "start", exe_name };
-        const final_args = try std.mem.concat(allocator, []const u8, &.{ win_args, encoded_list.items });
-
-        const win_child_proc = try std.ChildProcess.init(final_args, allocator);
-        win_child_proc.env_map = &env_map;
-        win_child_proc.stdout_behavior = .Inherit;
-        win_child_proc.stdin_behavior = .Inherit;
-
-        log.debug("CLI List: {s}", .{final_args});
-
-        const win_term = try win_child_proc.spawnAndWait();
-        switch (win_term) {
-            .Exited => |code| {
-                std.process.exit(code);
-            },
-            else => std.process.exit(1),
-        }
-    } else {
-        const cli = &[_][]const u8{ base_bin_path, "start", exe_name, args_string };
-        log.debug("CLI List: {s}", .{cli});
-        return std.process.execve(allocator, cli, &env_map);
-    }
+    try launcher.launch(install_dir, &env_map, &meta, args_trimmed);
 }
 
 fn do_payload_install(install_dir: []const u8, metadata_path: []const u8) !void {
