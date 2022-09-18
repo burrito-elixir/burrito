@@ -63,21 +63,8 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
         // Fix up Windows 10+ consoles having ANSI escape support, but only if we set some flags
         win_asni.enable_virtual_term();
 
-        // HACK: To get aroung the many issues with escape characters (like ", ', =, !, and %) in Windows
-        // we will encode each argument as a base64 string, these will be then be decoded using `Burrito.Util.Args.get_arguments/0`.
-        try env_map.put("_ARGUMENTS_ENCODED", "1");
-        var encoded_list = std.ArrayList([]u8).init(allocator);
-        defer encoded_list.deinit();
-
-        for (args_trimmed) |argument| {
-            const encoded_len = std.base64.standard_no_pad.Encoder.calcSize(argument.len);
-            const argument_encoded = try allocator.alloc(u8, encoded_len);
-            _ = std.base64.standard_no_pad.Encoder.encode(argument_encoded, argument);
-            try encoded_list.append(argument_encoded);
-        }
-
-        const encoded_args_string = try std.mem.join(allocator, " ", encoded_list.items);
-        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  &[_][]const u8{encoded_args_string} });
+        const args_string = try std.mem.join(allocator, " ", args_trimmed);
+        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  &[_][]const u8{args_string} });
 
         const win_child_proc = try std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = env_map;
