@@ -69,11 +69,11 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
             try encoded_list.append(argument_encoded);
         }
 
-        const encoded_args_string = try std.mem.join(allocator, " ", encoded_list);
+        const encoded_args_string = try std.mem.join(allocator, " ", encoded_list.items);
         const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  &[_][]const u8{encoded_args_string} });
 
         const win_child_proc = try std.ChildProcess.init(final_args, allocator);
-        win_child_proc.env_map = &env_map;
+        win_child_proc.env_map = env_map;
         win_child_proc.stdout_behavior = .Inherit;
         win_child_proc.stdin_behavior = .Inherit;
 
