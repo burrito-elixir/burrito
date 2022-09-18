@@ -11,6 +11,14 @@ const BufMap = std.BufMap;
 
 const MAX_READ_SIZE = 1000000000;
 
+fn get_erl_exe_name() []const u8 {
+    if (builtin.os.tag == .windows) {
+        return "erl.exe";
+    } else {
+        return "erl";
+    }
+}
+
 pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct, args_trimmed: []const []const u8) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     var allocator = arena.allocator();
@@ -22,15 +30,14 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
     const rel_vsn_dir = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version });
     const boot_path = try fs.path.join(allocator, &[_][]const u8{ rel_vsn_dir, "start" });
 
-    // Construct the ERTS 'erl' executable full path
     const erts_version_name = try std.fmt.allocPrint(allocator, "erts-{s}", .{ meta.erts_version });
-    const erl_bin_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, erts_version_name, "bin", "erl" });
+    var erl_bin_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, erts_version_name, "bin", get_erl_exe_name() });
 
     // Read the Erlang COOKIE file for the release
     const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .read = true, .write = false });
     const release_cookie_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
 
-    // Set all the require relese environment variables
+    // Set all the required release environment variables
 
     try env_map.put("NODE_NAME", meta.app_name[0..]);
 
