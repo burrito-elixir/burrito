@@ -45,7 +45,7 @@ We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakewar
 Burrito is composed of a few different components:
 * **Mix Release Module** - A module that is executed as a Mix release step. This module takes care of packing up the files, downloading and copying in different ERTS runtimes, and launching the Zig Archiver and Wrapper.
 * **Zig Archiver** - A small Zig library that packs up an entire directory into a tar-like blob. This is known as the "payload" -- which will contain all the compiled BEAM code for your release, and the ERTS for the target platform. This is Gzip compressed and then embedded directly into the wrapper program.
-* **Zig Wrapper** - This is portable cross-platform Zig code that wraps around the payload generated during the Mix release process.
+* **Zig Wrapper** - This is portable cross-platform Zig code that wraps around the payload generated during the Mix release process. Erlang is launched in [Embedded Mode](https://www.erlang.org/doc/man/config.html#sys.config) directly from Zig using `execve()` (on Windows we use a child process).
 
 ```
       Burrito Produced Binary
@@ -196,9 +196,9 @@ Burrito runs the mix release task in three "Phases". Each of these phases contai
 
 The three phases of the Burrito build pipeline are:
 
-  * `Fetch` - This phase is responsible for downloading or copying in any replacement ERTS builds for cross-build targets.
-  * `Patch` - The patch phase injects custom scripts into the build directory, this phase is also where any custom files should be copied into the build directory before being archived.
-  * `Build` -  This is the final phase in the build flow, it produces the final wrapper binary with a payload embedded inside.
+  * `Fetch` - This phase is responsible for downloading or locally locating any replacement ERTS builds for cross-build targets.
+  * `Patch` - This phase copies replacement ERTS files, and re-compiles NIFs (if any). This phase is also where any custom files should be copied into the build directory before being archived.
+  * `Build` -  This is the final phase in the build flow, it produces the final wrapper binary with the payload embedded inside.
 
   You can add your own steps before and after phases execute. Your custom steps will also receive the build context struct, and can return a modified one to customize a build to your liking.
 
