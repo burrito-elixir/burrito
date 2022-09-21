@@ -9,7 +9,7 @@ const win_asni = @cImport(@cInclude("win_ansi_fix.h"));
 const MetaStruct = metadata.MetaStruct;
 const BufMap = std.BufMap;
 
-const MAX_READ_SIZE = 1000000000;
+const MAX_READ_SIZE = 256;
 
 fn get_erl_exe_name() []const u8 {
     if (builtin.os.tag == .windows) {
@@ -27,6 +27,7 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
     const release_cookie_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", "COOKIE" });
     const release_lib_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "lib" });
     const install_vm_args_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version, "vm.args" });
+    const config_sys_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version, "sys.config" });
     const rel_vsn_dir = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version });
     const boot_path = try fs.path.join(allocator, &[_][]const u8{ rel_vsn_dir, "start" });
 
@@ -37,9 +38,7 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
     const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .read = true, .write = false });
     const release_cookie_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
 
-    // Set all the required release environment variables
-
-    try env_map.put("NODE_NAME", meta.app_name[0..]);
+    // Set all the required release arguments
 
     const erlang_cli = &[_][]const u8{
         erl_bin_path[0..], 
@@ -56,6 +55,8 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
         release_lib_path,
         "-args_file",
         install_vm_args_path,
+        "-config",
+        config_sys_path,
         "-extra",
     };
 
