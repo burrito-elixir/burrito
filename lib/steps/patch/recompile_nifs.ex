@@ -87,17 +87,22 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       {_, 0} ->
         Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
-        src_priv_files = Path.join(path, ["priv/*"]) |> Path.expand() |> Path.wildcard()
+        src_priv_files = Path.join(output_priv_dir, ["priv/*"]) |> Path.expand() |> Path.wildcard()
 
         final_output_priv_dir = Path.join(output_priv_dir, "priv")
 
         Enum.each(src_priv_files, fn file ->
           file_name = Path.basename(file)
-          dst_fullpath = Path.join(final_output_priv_dir, file_name)
+          if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
+            new_file_name = String.replace_trailing(file_name, ".so", ".dll")
+            dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
 
-          Log.info(:step, "#{file} -> #{final_output_priv_dir}")
+            Log.info(:step, "#{file} -> #{dst_fullpath}")
 
-          File.copy!(file, dst_fullpath)
+            File.rename!(file, dst_fullpath)
+          else
+            file_name
+          end
         end)
 
       {output, _} ->
