@@ -19,7 +19,6 @@ defmodule Burrito.MixProject do
 
   defp deps do
     [
-      {:elixir_make, "~> 0.6"},
       {:req, "~> 0.2.0 or ~> 0.3.0"},
       {:typed_struct, "~> 0.2.0 or ~> 0.3.0", runtime: false},
       {:jason, "~> 1.2"}
