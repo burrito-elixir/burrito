@@ -13,8 +13,8 @@ const Mode = std.builtin.Mode;
 const LibExeObjStep = std.build.LibExeObjStep;
 
 var builder: *Builder = undefined;
-var target: *CrossTarget = undefined;
-var mode: *Mode = undefined;
+var target: *const CrossTarget = undefined;
+var mode: *const Mode = undefined;
 
 var wrapper_exe: *LibExeObjStep = undefined;
 
@@ -38,8 +38,7 @@ pub fn run_archiver() !void {
     const release_path = std.os.getenv("__BURRITO_RELEASE_PATH");
     try foilz.pack_directory(release_path.?, "./payload.foilz");
 
-    // const compress_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "gzip -9nf payload.foilz" });
-    const compress_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "xz -9ez --check=crc32 --keep payload.foilz" });
+    const compress_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
     try compress_cmd.step.make();
 }
 
@@ -72,7 +71,7 @@ pub fn build_wrapper() !void {
     wrapper_exe.setBuildMode(mode.*);
 
     if (target.isWindows()) {
-        wrapper_exe.addIncludeDir("src/");
+        wrapper_exe.addIncludePath("src/");
     }
 
     // Link standard C libary to the wrapper
@@ -85,7 +84,7 @@ pub fn build_wrapper() !void {
         wrapper_exe.addPackagePath("burrito_plugin", "./_dummy_plugin.zig");
     }
 
-    wrapper_exe.addIncludeDir("src/xz");
+    wrapper_exe.addIncludePath("src/xz");
     wrapper_exe.addCSourceFile("src/xz/xz_crc32.c", &[0][]const u8{});
     wrapper_exe.addCSourceFile("src/xz/xz_dec_lzma2.c", &[0][]const u8{});
     wrapper_exe.addCSourceFile("src/xz/xz_dec_stream.c", &[0][]const u8{});

@@ -51,10 +51,10 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
 
     // Open a file for the archive
     _ = try fs.cwd().createFile(archive_path, .{ .truncate = true });
-    const arch_file = try fs.cwd().openFile(archive_path, .{ .write = true });
+    const arch_file = try fs.cwd().openFile(archive_path, .{ .mode = .read_write });
     const foilz_writer = fs.File.writer(arch_file);
 
-    var dir = try fs.openDirAbsolute(path, .{ .iterate = true });
+    var dir = try fs.openIterableDirAbsolute(path, .{ .access_sub_paths = true });
     var walker = try dir.walk(allocator);
 
     var count: u32 = 0;
