@@ -63,9 +63,7 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
     if (builtin.os.tag == .windows) {
         // Fix up Windows 10+ consoles having ANSI escape support, but only if we set some flags
         win_asni.enable_virtual_term();
-
-        const args_string = try std.mem.join(allocator, " ", args_trimmed);
-        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  &[_][]const u8{args_string} });
+        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  args_trimmed });
 
         const win_child_proc = try std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = env_map;
@@ -82,8 +80,7 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
             else => std.process.exit(1),
         }
     } else {
-        const args_string = try std.mem.join(allocator, " ", args_trimmed);
-        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  &[_][]const u8{args_string} });
+        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli, args_trimmed });
 
         log.debug("CLI List: {s}", .{final_args});
 
