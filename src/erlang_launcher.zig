@@ -7,7 +7,7 @@ const metadata = @import("metadata.zig");
 const win_asni = @cImport(@cInclude("win_ansi_fix.h"));
 
 const MetaStruct = metadata.MetaStruct;
-const BufMap = std.BufMap;
+const EnvMap = std.process.EnvMap;
 
 const MAX_READ_SIZE = 256;
 
@@ -19,7 +19,7 @@ fn get_erl_exe_name() []const u8 {
     }
 }
 
-pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct, args_trimmed: []const []const u8) !void {
+pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct, args_trimmed: []const []const u8) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     var allocator = arena.allocator();
 
@@ -35,7 +35,7 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
     var erl_bin_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, erts_version_name, "bin", get_erl_exe_name() });
 
     // Read the Erlang COOKIE file for the release
-    const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .read = true, .write = false });
+    const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .mode = .read_write });
     const release_cookie_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
 
     // Set all the required release arguments
@@ -65,7 +65,7 @@ pub fn launch(install_dir: []const u8, env_map: *BufMap, meta: *const MetaStruct
         win_asni.enable_virtual_term();
         const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  args_trimmed });
 
-        const win_child_proc = try std.ChildProcess.init(final_args, allocator);
+        var win_child_proc = std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = env_map;
         win_child_proc.stdout_behavior = .Inherit;
         win_child_proc.stdin_behavior = .Inherit;
