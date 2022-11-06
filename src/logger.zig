@@ -1,5 +1,6 @@
 const std = @import("std");
 
+var log = std.log;
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 var allocator = arena.allocator();
 
