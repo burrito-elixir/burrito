@@ -116,7 +116,9 @@ pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, 
     _ = try foilz_writer.writeInt(u64, name.len, .Little);
     _ = try foilz_writer.write(name);
     _ = try foilz_writer.writeInt(u64, data.len, .Little);
-    _ = try foilz_writer.write(data);
+    if (data.len > 0) {
+        _ = try foilz_writer.write(data);
+    }
     _ = try foilz_writer.writeInt(usize, mode, .Little);
 }
 
@@ -203,11 +205,15 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
         // If we're on windows don't try and use file_mode because NTFS doesn't have that!
         if (builtin.os.tag == .windows) {
             const file = try fs.createFileAbsolute(full_file_path, .{ .truncate = true });
-            try file.writeAll(file_data);
+            if (file_len > 0) {
+                try file.writeAll(file_data);
+            }
             file.close();
         } else {
             const file = try fs.createFileAbsolute(full_file_path, .{ .truncate = true, .mode = @intCast(os.mode_t, file_mode) });
-            try file.writeAll(file_data);
+            if (file_len > 0) {
+                try file.writeAll(file_data);
+            }
             file.close();
         }
 
