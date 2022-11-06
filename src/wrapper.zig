@@ -30,8 +30,8 @@ const metadata = @import("metadata.zig");
 const MetaStruct = metadata.MetaStruct;
 
 // Payload
-pub const FOILZ_PAYLOAD = @embedFile("../payload.foilz.xz");
-pub const RELEASE_METADATA_JSON = @embedFile("../_metadata.json");
+pub const FOILZ_PAYLOAD = @embedFile("payload.foilz.xz");
+pub const RELEASE_METADATA_JSON = @embedFile("_metadata.json");
 
 // Memory allocator
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -67,7 +67,7 @@ pub fn main() anyerror!void {
         if (err == error.FileNotFound) {
             needs_install = true;
         } else {
-            log.err("We failed to open the destination directory with an unexpected error: {s}", .{err});
+            log.err("We failed to open the destination directory with an unexpected error: {!}", .{err});
             return;
         }
     };

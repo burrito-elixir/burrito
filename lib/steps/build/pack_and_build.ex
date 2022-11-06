@@ -82,7 +82,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
 
     encoded = Jason.encode!(metadata_map)
 
-    Path.join(self_path, "_metadata.json") |> File.write!(encoded)
+    Path.join(self_path, ["src/", "_metadata.json"]) |> File.write!(encoded)
   end
 
   defp is_prod?() do
@@ -99,8 +99,8 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     cache = Path.join(self_path, "zig-cache")
     out = Path.join(self_path, "zig-out")
     payload = Path.join(self_path, "payload.foilz")
-    compressed_payload = Path.join(self_path, "payload.foilz.xz")
-    metadata = Path.join(self_path, "_metadata.json")
+    compressed_payload = Path.join(self_path, ["src/", "payload.foilz.xz"])
+    metadata = Path.join(self_path, ["src/", "_metadata.json"])
 
     File.rmdir(cache)
     File.rmdir(out)
