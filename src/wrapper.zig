@@ -184,11 +184,9 @@ fn get_install_dir(meta: *const MetaStruct) ![]u8 {
     const dir_name = try std.fmt.allocPrint(allocator, "{s}_erts-{s}_{s}", .{ build_options.RELEASE_NAME, meta.erts_version, meta.app_version });
 
     // Ensure that base directory is created
-    std.os.mkdir(base_install_path, 0o755) catch |err| {
-        if (err != error.PathAlreadyExists) {
-            install_dir_error();
-            return "";
-        }
+    std.fs.cwd().makePath(base_install_path) catch {
+        install_dir_error();
+        return "";
     };
 
     // Construct the full app install path
