@@ -88,14 +88,15 @@ defmodule Burrito.Builder.Target do
         is_uri?(custom_location) ->
           {:url, url: custom_location}
 
-        String.ends_with?(custom_location, ".tar.gz") ->
+        String.ends_with?(custom_location, ".tar.gz") or
+            String.ends_with?(custom_location, ".exe") ->
           {:local, path: custom_location}
 
         File.dir?(custom_location) ->
           {:local_unpacked, path: custom_location}
 
         true ->
-          raise "`:custom_erts` was not a URL, local path to tarball, or local path to a directory"
+          raise "`:custom_erts` was not a URL, local path to tarball/compressed-exe, or local path to a directory"
       end
     else
       if cross_build? do
