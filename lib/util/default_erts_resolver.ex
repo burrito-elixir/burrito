@@ -110,6 +110,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
   end
 
   defp do_download(url, cache_key) do
+    {:ok, _} = Application.ensure_all_started(:req)
     Log.info(:step, "Downloading file: #{url}")
     data = Req.get!(url).body
     FileCache.put_if_not_exist(cache_key, data)
