@@ -14,7 +14,6 @@ const LibExeObjStep = std.build.LibExeObjStep;
 
 var builder: *Builder = undefined;
 var target: *const CrossTarget = undefined;
-var mode: *const Mode = undefined;
 
 var wrapper_exe: *LibExeObjStep = undefined;
 
@@ -23,7 +22,6 @@ pub fn build(b: *Builder) !void {
 
     builder = b;
     target = &builder.standardTargetOptions(.{});
-    mode = &builder.standardReleaseOptions();
 
     // Run build steps!
     _ = try run_archiver();
@@ -63,12 +61,17 @@ pub fn build_wrapper() !void {
 
     if (std.mem.eql(u8, is_prod.?, "1")) {
         exe_options.addOption(bool, "IS_PROD", true);
+
+        wrapper_exe.setBuildMode(Mode.ReleaseSmall);
+        // https://github.com/ziglang/zig/issues/13405
+        wrapper_exe.strip = true;
     } else {
         exe_options.addOption(bool, "IS_PROD", false);
+
+        wrapper_exe.setBuildMode(Mode.Debug);
     }
 
     wrapper_exe.setTarget(target.*);
-    wrapper_exe.setBuildMode(mode.*);
 
     if (target.isWindows()) {
         wrapper_exe.addIncludePath("src/");
