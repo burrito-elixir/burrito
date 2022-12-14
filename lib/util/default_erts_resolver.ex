@@ -64,7 +64,26 @@ defmodule Burrito.Util.DefaultERTSResolver do
     end
   end
 
-  defp do_unpack(data, %Target{} = target) do
+  # Req can decompress the body into a list of {filename, filedata}
+  defp do_unpack(data, _target) when is_list(data) do
+    random_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
+    extraction_path = System.tmp_dir!() |> Path.join(["unpacked_erts_#{random_id}"])
+    File.mkdir_p!(extraction_path)
+
+    Enum.each(data, fn {filename, filedata} ->
+      path = Path.join(extraction_path, filename)
+
+      path
+      |> Path.dirname()
+      |> File.mkdir_p!()
+
+      File.write!(path, filedata)
+    end)
+
+    extraction_path
+  end
+
+  defp do_unpack(data, %Target{} = target) when is_binary(data) do
     # save the payload somewhere
     random_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
     tar_dest_path = System.tmp_dir!() |> Path.join(["erts_#{random_id}"])
