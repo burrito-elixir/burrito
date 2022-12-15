@@ -14,12 +14,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
 
     plugin_path = maybe_get_plugin_path(options[:plugin])
 
-    zig_build_args =
-      if context.target.debug? do
-        ["-Dtarget=#{build_triplet}"]
-      else
-        ["-Dtarget=#{build_triplet}", "-Drelease-small=true"]
-      end
+    zig_build_args = ["-Dtarget=#{build_triplet}"]
 
     create_metadata_file(context.self_dir, zig_build_args, context.mix_release)
 
@@ -34,7 +29,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
       System.cmd("zig", ["build"] ++ zig_build_args,
         cd: context.self_dir,
         env: [
-          {"__BURRITO_IS_PROD", is_prod?()},
+          {"__BURRITO_IS_PROD", is_prod(context.target)},
           {"__BURRITO_RELEASE_PATH", context.work_dir},
           {"__BURRITO_RELEASE_NAME", release_name},
           {"__BURRITO_PLUGIN_PATH", plugin_path}
@@ -85,11 +80,11 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Path.join(self_path, ["src/", "_metadata.json"]) |> File.write!(encoded)
   end
 
-  defp is_prod?() do
-    if Mix.env() == :prod do
-      "1"
-    else
-      "0"
+  defp is_prod(%Target{debug?: debug?}) do
+    cond do
+      debug? -> "0"
+      Mix.env() == :prod -> "1"
+      true -> "0"
     end
   end
 
