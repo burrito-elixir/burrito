@@ -15,7 +15,7 @@ fn get_erl_exe_name() []const u8 {
     if (builtin.os.tag == .windows) {
         return "erl.exe";
     } else {
-        return "erl";
+        return "erlexec";
     }
 }
 
@@ -31,8 +31,9 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
     const rel_vsn_dir = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version });
     const boot_path = try fs.path.join(allocator, &[_][]const u8{ rel_vsn_dir, "start" });
 
-    const erts_version_name = try std.fmt.allocPrint(allocator, "erts-{s}", .{ meta.erts_version });
-    var erl_bin_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, erts_version_name, "bin", get_erl_exe_name() });
+    const erts_version_name = try std.fmt.allocPrint(allocator, "erts-{s}", .{meta.erts_version});
+    const erts_bin_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, erts_version_name, "bin" });
+    const erl_bin_path = try fs.path.join(allocator, &[_][]const u8{ erts_bin_path, get_erl_exe_name() });
 
     // Read the Erlang COOKIE file for the release
     const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .mode = .read_write });
@@ -41,11 +42,11 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
     // Set all the required release arguments
 
     const erlang_cli = &[_][]const u8{
-        erl_bin_path[0..], 
-        "-elixir ansi_enabled true", 
-        "-noshell", 
-        "-s elixir start_cli", 
-        "-mode embedded", 
+        erl_bin_path[0..],
+        "-elixir ansi_enabled true",
+        "-noshell",
+        "-s elixir start_cli",
+        "-mode embedded",
         "-setcookie",
         release_cookie_content,
         "-boot",
@@ -63,7 +64,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
     if (builtin.os.tag == .windows) {
         // Fix up Windows 10+ consoles having ANSI escape support, but only if we set some flags
         win_asni.enable_virtual_term();
-        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli,  args_trimmed });
+        const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli, args_trimmed });
 
         var win_child_proc = std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = env_map;
@@ -84,6 +85,19 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
 
         log.debug("CLI List: {s}", .{final_args});
 
-        return std.process.execve(allocator, final_args, env_map);
+        var erl_env_map = EnvMap.init(allocator);
+        defer erl_env_map.deinit();
+
+        var env_map_it = env_map.iterator();
+        while (env_map_it.next()) |entry| {
+            const key = entry.key_ptr.*;
+            const val = entry.value_ptr.*;
+            try erl_env_map.put(key, val);
+        }
+
+        try erl_env_map.put("ROOTDIR", install_dir[0..]);
+        try erl_env_map.put("BINDIR", erts_bin_path[0..]);
+
+        return std.process.execve(allocator, final_args, &erl_env_map);
     }
 }
