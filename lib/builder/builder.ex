@@ -152,7 +152,7 @@ defmodule Burrito.Builder do
           "Halt requested from phase: #{inspect(phase_name)} in step #{inspect(mod)}"
         )
 
-        exit(1)
+        System.halt(1)
       end
 
       new_context

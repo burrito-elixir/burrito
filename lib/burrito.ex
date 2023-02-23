@@ -19,7 +19,7 @@ defmodule Burrito do
         "You MUST have `zig` and `xz` installed to use Burrito, we couldn't find all of them in your PATH!"
       )
 
-      exit(1)
+      System.halt(1)
     end
 
     if Enum.any?(~w(7z), &(System.find_executable(&1) == nil)) do

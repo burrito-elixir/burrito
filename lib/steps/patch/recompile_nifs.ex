@@ -105,10 +105,9 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
           end
         end)
 
-      {output, _} ->
+      {_output, _} ->
         Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
-        Log.error(:step, output)
-        exit(1)
+        System.halt(1)
     end
   end
 
