@@ -64,8 +64,6 @@ defmodule Burrito.Builder do
           "Target is being overridden with BURRITO_TARGET #{target_override_string}"
         )
 
-        old_targets = Target.get_old_targets()
-
         override_atom =
           try do
             String.to_existing_atom(target_override_string)
@@ -74,15 +72,10 @@ defmodule Burrito.Builder do
           end
 
         # If we have a named target defined that matches this atom use that
-        # otherwise if it's a legacy build target, translate it (this will be removed soon!)
         # otherwise :error, not a valid target
         cond do
           Keyword.has_key?(build_targets, override_atom) ->
             Keyword.take(build_targets, [override_atom])
-
-          override_atom in old_targets ->
-            resolved_override = Target.maybe_translate_old_target(override_atom)
-            Keyword.put([], override_atom, resolved_override)
 
           true ->
             raise_invalid_target(override_atom)
