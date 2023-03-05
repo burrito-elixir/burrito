@@ -17,9 +17,9 @@ defmodule Burrito.Builder.Log do
 
   defp get_prefix(type) do
     case type do
-      :build -> "-> "
-      :phase -> "--> "
-      :step -> "---> "
+      :build -> "> "
+      :phase -> "----> "
+      :step -> "--> "
     end
   end
 end
