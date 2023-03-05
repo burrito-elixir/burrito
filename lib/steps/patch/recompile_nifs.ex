@@ -114,19 +114,19 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
   defp erts_make_env(erts_path) do
     ei_include =
-      Path.join(erts_path, ["otp-*/", "usr/", "include/"])
+      Path.join(erts_path, ["otp*/", "usr/", "include/"])
       |> Path.expand()
       |> Path.wildcard()
       |> List.first()
 
     ei_lib =
-      Path.join(erts_path, ["otp-*/", "usr/", "lib/"])
+      Path.join(erts_path, ["otp*/", "usr/", "lib/"])
       |> Path.expand()
       |> Path.wildcard()
       |> List.first()
 
     erts_include =
-      Path.join(erts_path, ["otp-*/", "erts*/", "include/"])
+      Path.join(erts_path, ["otp*/", "erts*/", "include/"])
       |> Path.expand()
       |> Path.wildcard()
       |> List.first()

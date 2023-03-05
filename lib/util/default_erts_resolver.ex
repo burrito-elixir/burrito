@@ -5,7 +5,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
   alias Burrito.Util
   alias Burrito.Util.FileCache
   alias Burrito.Util.ERTSResolver
-  alias Burrito.Util.ERTSUrlFetcher
+  alias Burrito.Util.ERTSBeamMachineFetcher
 
   @behaviour ERTSResolver
 
@@ -17,7 +17,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
 
   def do_resolve(%Target{erts_source: {:precompiled, version: otp_version}} = target)
       when is_binary(otp_version) do
-    case ERTSUrlFetcher.fetch_version(
+    case ERTSBeamMachineFetcher.fetch_version(
            target.os,
            target.qualifiers[:libc],
            target.cpu,
@@ -25,14 +25,6 @@ defmodule Burrito.Util.DefaultERTSResolver do
          ) do
       %URI{} = location ->
         %Target{target | erts_source: {:url, url: location}} |> do_resolve()
-
-      {:error, err} ->
-        Log.error(
-          :step,
-          "Failed to fetch a precompiled Erlang (version #{otp_version})!\n\t Reason: #{translate_resolve_error(err)}"
-        )
-
-        %Target{target | erts_source: {:unresolved, err}}
     end
   end
 
@@ -64,25 +56,6 @@ defmodule Burrito.Util.DefaultERTSResolver do
     end
   end
 
-  # Req can decompress the body into a list of {filename, filedata}
-  defp do_unpack(data, _target) when is_list(data) do
-    random_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
-    extraction_path = System.tmp_dir!() |> Path.join(["unpacked_erts_#{random_id}"])
-    File.mkdir_p!(extraction_path)
-
-    Enum.each(data, fn {filename, filedata} ->
-      path = Path.join(extraction_path, filename)
-
-      path
-      |> Path.dirname()
-      |> File.mkdir_p!()
-
-      File.write!(path, filedata)
-    end)
-
-    extraction_path
-  end
-
   defp do_unpack(data, %Target{} = target) when is_binary(data) do
     # save the payload somewhere
     random_id = :crypto.strong_rand_bytes(8) |> Base.encode16()
@@ -112,12 +85,8 @@ defmodule Burrito.Util.DefaultERTSResolver do
   defp do_download(url, cache_key) do
     {:ok, _} = Application.ensure_all_started(:req)
     Log.info(:step, "Downloading file: #{url}")
-    data = Req.get!(url).body
+    data = Req.get!(url, raw: true).body
     FileCache.put_if_not_exist(cache_key, data)
     data
   end
-
-  defp translate_resolve_error(:no_result),
-    do:
-      "No pre-compiled version matching this combination of platform, arch, and libc was found on our CI system."
 end

@@ -22,6 +22,10 @@ defmodule ExampleCliApp.MixProject do
             macos_m1: [os: :darwin, cpu: :aarch64],
             linux_gnu: [os: :linux, cpu: :x86_64, libc: :gnu],
             linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
+            linux_gnu_aarch64: [os: :linux, cpu: :aarch64, libc: :gnu],
+            linux_musl_aarch64: [os: :linux, cpu: :aarch64, libc: :musl],
+            linux_gnu_riscv64: [os: :linux, cpu: :riscv64, libc: :gnu],
+            linux_musl_riscv64: [os: :linux, cpu: :riscv64, libc: :musl],
             windows: [os: :windows, cpu: :x86_64]
           ],
           extra_steps: [
