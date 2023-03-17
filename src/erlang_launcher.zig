@@ -67,6 +67,9 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         win_asni.enable_virtual_term();
         const final_args = try std.mem.concat(allocator, []const u8, &.{ erlang_cli, args_trimmed });
 
+        try env_map.put("RELEASE_ROOT", install_dir);
+        try env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
+
         var win_child_proc = std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = env_map;
         win_child_proc.stdout_behavior = .Inherit;
