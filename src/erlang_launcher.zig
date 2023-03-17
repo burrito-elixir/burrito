@@ -28,6 +28,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
     const release_lib_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "lib" });
     const install_vm_args_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version, "vm.args" });
     const config_sys_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version, "sys.config" });
+    const config_sys_path_no_ext = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version, "sys" });
     const rel_vsn_dir = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", meta.app_version });
     const boot_path = try fs.path.join(allocator, &[_][]const u8{ rel_vsn_dir, "start" });
 
@@ -97,6 +98,8 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
 
         try erl_env_map.put("ROOTDIR", install_dir[0..]);
         try erl_env_map.put("BINDIR", erts_bin_path[0..]);
+        try erl_env_map.put("RELEASE_ROOT", install_dir);
+        try erl_env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
 
         return std.process.execve(allocator, final_args, &erl_env_map);
     }
