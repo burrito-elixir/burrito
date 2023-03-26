@@ -268,7 +268,7 @@ targets: [
 ]
 ```
 
-Build targets can be further customized using build qualifiers. For example, a Linux build target can be configured to use `musl` instead of `glibc` using the following definition:
+Build targets can be further customized using build qualifiers. For example, a Linux build target can be configured to use `musl` instead of `gnu` using the following definition:
 
 ```elixir
 targets: [
@@ -290,7 +290,7 @@ The Burrito project provides precompiled builds of Erlang for the following plat
 
 ```elixir
 [os: :darwin, cpu: :x86_64],
-[os: :linux, cpu: :x86_64, libc: :glibc], # or just [os: :linux, cpu: :x86_64]
+[os: :linux, cpu: :x86_64, libc: :gnu], # or just [os: :linux, cpu: :x86_64]
 [os: :linux, cpu: :x86_64, libc: :musl],
 [os: :windows, cpu: :x86_64]
 ```
@@ -301,7 +301,7 @@ If you require a custom build of ERTS, you're able to override the precompiled b
 targets: [
   linux_arm: [
     os: :linux,
-    cpu: :arm64,
+    cpu: :aarch64,
     custom_erts: "/path/to/my_custom_erts.tar.gz"
   ]
 ]
@@ -339,10 +339,10 @@ Minimizing the runtime dependencies of the package binaries is an explicit desig
 * MSVC Runtime for the Erlang version you are shipping
 * Windows 10 Build 1511 or later (for ANSI color support)
 ##### Linux
-* Any distribution with glibc (or musl libc)
+* Any distribution with glibc (gnu) (or musl libc)
 * libncurses-5
 ##### MacOS
-* No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes codesigning
+* No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes code-signing
 
 ## Contributing
 #### Welcome!

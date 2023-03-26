@@ -2,17 +2,11 @@ defmodule Burrito.Builder.Target do
   use TypedStruct
 
   alias __MODULE__
-  alias Burrito.Builder.Log
   alias Burrito.Util
 
   @type erts_source ::
           {:unresolved | :runtime | :precompiled | :local | :local_unpacked | :url,
            keyword() | atom()}
-
-  @old_targets [:darwin, :win64, :linux, :linux_musl]
-
-  @type legacy_definition :: atom()
-  @type target_definition :: keyword() | legacy_definition()
 
   typedstruct enforce: true do
     field(:alias, atom())
@@ -22,27 +16,6 @@ defmodule Burrito.Builder.Target do
     field(:qualifiers, keyword())
     field(:erts_source, erts_source())
     field(:debug?, boolean())
-  end
-
-  @spec init_target(atom(), target_definition()) :: t()
-  def init_target(_target_alias, legacy_definition) when is_atom(legacy_definition) do
-    debug? = Mix.env() != :prod
-
-    translated_target =
-      case legacy_definition do
-        :darwin -> [os: :darwin, cpu: :x86_64, debug?: debug?]
-        :win64 -> [os: :windows, cpu: :x86_64, debug?: debug?]
-        :linux -> [os: :linux, cpu: :x86_64, libc: :glibc, debug?: debug?]
-        :linux_musl -> [os: :linux, cpu: :x86_64, libc: :musl, debug?: debug?]
-        other -> raise "Unrecognized legacy build target: #{other}"
-      end
-
-    Log.warning(
-      :build,
-      "You have specified an old-style build target: #{legacy_definition}\n\tPlease see the Burrito README for instructions on migrating to the new format!"
-    )
-
-    init_target(legacy_definition, translated_target)
   end
 
   def init_target(target_alias, definition) do
@@ -60,8 +33,8 @@ defmodule Burrito.Builder.Target do
     libc =
       if fields[:os] == :linux do
         if libc == nil do
-          # if we are not on a host that has a libc, default to glibc
-          Util.get_libc_type() || :glibc
+          # if we are not on a host that has a libc, default to glibc (gnu)
+          Util.get_libc_type() || :gnu
         else
           libc
         end
@@ -139,32 +112,7 @@ defmodule Burrito.Builder.Target do
     end
   end
 
-  defp translate_libc_to_zig(:glibc), do: "gnu"
+  defp translate_libc_to_zig(:gnu), do: "gnu"
   defp translate_libc_to_zig(:musl), do: "musl"
   defp translate_libc_to_zig(abi), do: Atom.to_string(abi)
-
-  @spec maybe_translate_old_target(atom()) :: keyword()
-  def maybe_translate_old_target(old_target) when old_target in @old_targets do
-    old_target =
-      case old_target do
-        :darwin -> [os: :darwin, cpu: :x86_64]
-        :win64 -> [os: :windows, cpu: :x86_64]
-        :linux -> [os: :linux, cpu: :x86_64, libc: :glibc]
-        :linux_musl -> [os: :linux, cpu: :x86_64, libc: :musl]
-      end
-
-    Log.warning(
-      :build,
-      "You have specified an old-style build target, please move to using the newer format of build targets\n\t#{inspect(old_target)}\n\tSee the Burrito README for examples!"
-    )
-
-    old_target
-  end
-
-  def maybe_translate_old_target(not_old_target), do: not_old_target
-
-  @spec get_old_targets :: [:darwin | :linux | :linux_musl | :win64]
-  def get_old_targets do
-    @old_targets
-  end
 end

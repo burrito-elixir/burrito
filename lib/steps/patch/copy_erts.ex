@@ -38,7 +38,7 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
     # Copy in new bins from unpacked ERTS
     unpacked_path =
-      Path.join(erts_location, ["otp-*/", "erts-*/"])
+      Path.join(erts_location, ["otp*/**/", "erts-*/"])
       |> Path.expand()
       |> Path.wildcard()
       |> List.first()
@@ -50,7 +50,7 @@ defmodule Burrito.Steps.Patch.CopyERTS do
     # The ERTS comes with some pre-built NIFs, so we need to replace those
 
     src_lib_path =
-      Path.join(erts_location, ["otp-*/", "lib/"])
+      Path.join(erts_location, ["otp*/", "lib/"])
       |> Path.expand()
       |> Path.wildcard()
       |> List.first()

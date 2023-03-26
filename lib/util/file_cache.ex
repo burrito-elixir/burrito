@@ -27,8 +27,6 @@ defmodule Burrito.Util.FileCache do
       Logger.info("Wrote new cache file: #{full_path}")
       File.write!(full_path, data, [:binary])
     end
-  rescue
-    err -> {:error, err}
   end
 
   @spec clear_cache() :: :ok | {:error, term()}
