@@ -60,7 +60,7 @@ defmodule Burrito.Steps.Patch.CopyERTS do
     # List the DLL/SO files that come from our replacement ERTS
     # The new ERTS is treated as the "authoritative" ERTS, some DLLs/SOs may exist in it
     # That do not exist in the host/source ERTS. We'll log when we replace a library file
-    to_copy = Path.join(erts_location, "*/lib/**/*.{so,dll}") |> Path.expand() |> Path.wildcard()
+    to_copy = Path.join(erts_location, "*/lib/**/*.{so,dll,exe}") |> Path.expand() |> Path.wildcard()
 
     Enum.each(to_copy, fn file_to_copy ->
       destination_file_path = String.replace(file_to_copy, src_lib_path, dest_lib_path)
