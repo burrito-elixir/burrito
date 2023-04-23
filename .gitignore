@@ -1,4 +1,4 @@
-### macOS ###
+## macOS ###
 # General
 .DS_Store
 .AppleDouble
@@ -51,4 +51,4 @@ erl_crash.dump
 *.beam
 /config/*.secret.exs
 .elixir_ls/
-*burrito_out/*
+**/burrito_out/**
