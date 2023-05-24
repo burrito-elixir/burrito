@@ -85,8 +85,13 @@ defmodule Burrito.Util.DefaultERTSResolver do
   defp do_download(url, cache_key) do
     {:ok, _} = Application.ensure_all_started(:req)
     Log.info(:step, "Downloading file: #{url}")
-    data = Req.get!(url, raw: true).body
-    FileCache.put_if_not_exist(cache_key, data)
-    data
+    resp = Req.get!(url, raw: true)
+
+    if resp.status != 200 do
+      raise "Failed to fetch #{url}! (Got #{resp.status}) Perhaps we haven't built a pre-compiled Erlang for this release yet? If this was a 404, please file an issue! Thanks!"
+    end
+
+    FileCache.put_if_not_exist(cache_key, resp.body)
+    resp.body
   end
 end
