@@ -45,33 +45,6 @@ pub extern "kernel32" fn GetCommandLineW() LPWSTR;
 pub extern "shell32" fn CommandLineToArgvW(lpCmdLine: LPCWSTR, out_pNumArgs: *c_int) ?[*]LPWSTR;
 
 pub fn main() anyerror!void {
-    log.debug("Size of embedded payload is: {}", .{FOILZ_PAYLOAD.len});
-
-    // If this is not a production build, we always want a clean install
-    const wants_clean_install = !build_options.IS_PROD;
-
-    const meta = metadata.parse(allocator, RELEASE_METADATA_JSON).?;
-
-    const install_dir = (try get_install_dir(&meta))[0..];
-    const metadata_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "_metadata.json" });
-
-    log.debug("Install Directory: {s}", .{install_dir});
-    log.debug("Metadata path: {s}", .{metadata_path});
-
-    // Ensure the destination directory is created
-    try std.fs.cwd().makePath(install_dir);
-
-    // If the metadata file exists, don't install again
-    var needs_install: bool = false;
-    std.fs.accessAbsolute(metadata_path, .{}) catch |err| {
-        if (err == error.FileNotFound) {
-            needs_install = true;
-        } else {
-            log.err("We failed to open the destination directory with an unexpected error: {!}", .{err});
-            return;
-        }
-    };
-
     var args: ?[][]u8 = null;
 
     // Get argvs -- on Windows we need to call CommandLineToArgvW() with GetCommandLineW()
@@ -96,6 +69,38 @@ pub fn main() anyerror!void {
 
     // Trim args to only what we actually want to pass to erlang
     const args_trimmed = args.?[1..];
+
+    // If this is not a production build, we always want a clean install
+    const wants_clean_install = !build_options.IS_PROD;
+
+    const meta = metadata.parse(allocator, RELEASE_METADATA_JSON).?;
+    const install_dir = (try get_install_dir(&meta))[0..];
+    const metadata_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "_metadata.json" });
+
+    // Check for maintenance commands
+    if (args_trimmed.len > 0 and std.mem.eql(u8, args_trimmed[0], "maintenance")) {
+        try maint.do_maint(args_trimmed[1..], install_dir);
+        return;
+    }
+
+    log.debug("Size of embedded payload is: {}", .{FOILZ_PAYLOAD.len});
+    log.debug("Install Directory: {s}", .{install_dir});
+    log.debug("Metadata path: {s}", .{metadata_path});
+
+    // Ensure the destination directory is created
+    try std.fs.cwd().makePath(install_dir);
+
+    // If the metadata file exists, don't install again
+    var needs_install: bool = false;
+    std.fs.accessAbsolute(metadata_path, .{}) catch |err| {
+        if (err == error.FileNotFound) {
+            needs_install = true;
+        } else {
+            log.err("We failed to open the destination directory with an unexpected error: {!}", .{err});
+            return;
+        }
+    };
+
     log.debug("Passing args string: {s}", .{args_trimmed});
 
     // Execute plugin code
@@ -114,14 +119,6 @@ pub fn main() anyerror!void {
         try do_payload_install(install_dir, metadata_path);
     } else {
         log.debug("Skipping archive unpacking, this machine already has the app installed!", .{});
-    }
-
-    // Check for maintenance commands
-    if (args_trimmed.len > 0 and std.mem.eql(u8, args_trimmed[0], "maintenance")) {
-        logger.info("Entering {s} maintenance mode...", .{build_options.RELEASE_NAME});
-        logger.info("Build metadata: {s}", .{RELEASE_METADATA_JSON});
-        try maint.do_maint(args_trimmed[1..], install_dir);
-        return;
     }
 
     // Clean up older versions
