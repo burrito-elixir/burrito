@@ -3,6 +3,7 @@ const std = @import("std");
 const logger = @import("logger.zig");
 const metadata = @import("metadata.zig");
 const install = @import("install.zig");
+const wrapper = @import("wrapper.zig");
 
 const MetaStruct = metadata.MetaStruct;
 
@@ -13,8 +14,15 @@ pub fn do_maint(args: [][]u8, install_dir: []const u8) !void {
         if (std.mem.eql(u8, args[0], "uninstall")) {
             try do_uninstall(install_dir);
         }
+
+        if (std.mem.eql(u8, args[0], "directory")) {
+            try print_install_dir(install_dir);
+        }
+
+        if (std.mem.eql(u8, args[0], "meta")) {
+            try print_metadata();
+        }
     }
-    logger.info("Quitting.", .{});
 }
 
 fn confirm() !bool {
@@ -37,12 +45,24 @@ fn do_uninstall(install_dir: []const u8) !void {
     logger.warn("This will uninstall the application runtime for this Burrito binary!", .{});
     if ((try confirm()) == false) {
         logger.warn("Uninstall was aborted!", .{});
+        logger.info("Quitting.", .{});
         return;
     }
 
     logger.info("Deleting directory: {s}", .{install_dir});
     try std.fs.deleteTreeAbsolute(install_dir);
     logger.info("Uninstall complete!", .{});
+    logger.info("Quitting.", .{});
+}
+
+fn print_metadata() !void {
+    var stdout = std.io.getStdOut().writer();
+    stdout.print("{s}", .{wrapper.RELEASE_METADATA_JSON}) catch {};
+}
+
+fn print_install_dir(install_dir: []const u8) !void {
+    var stdout = std.io.getStdOut().writer();
+    stdout.print("{s}\n", .{install_dir}) catch {};
 }
 
 pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_path: []const u8) !void {
