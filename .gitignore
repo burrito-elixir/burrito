@@ -52,3 +52,10 @@ erl_crash.dump
 /config/*.secret.exs
 .elixir_ls/
 **/burrito_out/**
+
+### Rust ###
+debug/
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
