@@ -14,9 +14,9 @@ defmodule Burrito.Steps.Build.PackAndBuild do
 
     plugin_path = maybe_get_plugin_path(options[:plugin])
 
-    zig_build_args = ["-Dtarget=#{build_triplet}"]
+    build_args = ["--target=#{build_triplet}"]
 
-    create_metadata_file(context.self_dir, zig_build_args, context.mix_release)
+    create_metadata_file(context.self_dir, build_args, context.mix_release)
 
     # TODO: Why do we need to do this???
     # This is to bypass a VERY strange bug inside Linux containers...
@@ -36,8 +36,8 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Log.info(:step, "Zig build env: #{inspect(build_env)}")
 
     build_result =
-      System.cmd("zig", ["build"] ++ zig_build_args,
-        cd: context.self_dir,
+      System.cmd("cargo", ["build"] ++ build_args,
+        cd: Path.join(context.self_dir, "/wrapper"),
         env: build_env,
         into: IO.stream()
       )
@@ -69,11 +69,11 @@ defmodule Burrito.Steps.Build.PackAndBuild do
   defp create_metadata_file(self_path, args, release) do
     Log.info(:step, "Generating wrapper metadata file...")
 
-    {zig_version_string, 0} = System.cmd("zig", ["version"], cd: self_path)
+    {version_string, 0} = System.cmd("cargo", ["version"], cd: self_path, stderr_to_stdout: true)
 
     metadata_map = %{
       app_name: Atom.to_string(release.name),
-      zig_version: zig_version_string |> String.trim(),
+      zig_version: version_string |> String.trim(),
       zig_build_arguments: args,
       app_version: release.version,
       options: inspect(release.options),
@@ -96,14 +96,12 @@ defmodule Burrito.Steps.Build.PackAndBuild do
   defp clean_build(self_path) do
     Log.info(:step, "Cleaning up...")
 
-    cache = Path.join(self_path, "zig-cache")
-    out = Path.join(self_path, "zig-out")
+    out = Path.join(self_path, "wrapper/target")
     payload = Path.join(self_path, "payload.foilz")
     compressed_payload = Path.join(self_path, ["src/", "payload.foilz.xz"])
     musl_runtime = Path.join(self_path, ["src/", "musl-runtime.so"])
     metadata = Path.join(self_path, ["src/", "_metadata.json"])
 
-    File.rmdir(cache)
     File.rmdir(out)
     File.rm(payload)
     File.rm(compressed_payload)

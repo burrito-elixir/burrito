@@ -1,6 +1,7 @@
 defmodule Burrito.Steps.Build.CopyRelease do
   alias Burrito.Builder.Context
   alias Burrito.Builder.Step
+  alias Burrito.Builder.Target
 
   @behaviour Step
 
@@ -15,9 +16,9 @@ defmodule Burrito.Steps.Build.CopyRelease do
     release_name = Atom.to_string(context.mix_release.name)
     target_name = Atom.to_string(context.target.alias)
 
-    orig_bin_name =
+    orig_bin_ext =
       if context.target.os == :windows do
-        "#{release_name}.exe"
+        ".exe"
       else
         release_name
       end
@@ -29,7 +30,7 @@ defmodule Burrito.Steps.Build.CopyRelease do
         "#{release_name}_#{target_name}"
       end
 
-    bin_path = Path.join(context.self_dir, ["zig-out", "/bin", "/#{orig_bin_name}"])
+    bin_path = Path.join(context.self_dir, ["wrapper/target", "/#{target_path(context.target)}", "/wrapper#{orig_bin_ext}"])
     bin_out_path = Path.join(app_path, ["burrito_out"])
     File.mkdir_p!(bin_out_path)
 
@@ -50,5 +51,18 @@ defmodule Burrito.Steps.Build.CopyRelease do
     IO.puts(@success_banner <> "\tOutput Path: #{output_bin_path}\n\n")
 
     context
+  end
+
+  defp target_path(%Target{debug?: debug?} = target) do
+    # rust has 4 built-in profiles: dev, release, test, and bench
+    # each is a subfolder of the target triplet
+    build_triplet = Target.make_triplet(target)
+    # TODO: Determine if all profiles are relevant for this application
+    Path.join(build_triplet,
+    cond do
+      debug? -> "debug"
+      Mix.env() == :prod -> "release"
+      true -> "debug" # TODO: Determine better default
+    end)
   end
 end

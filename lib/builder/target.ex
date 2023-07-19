@@ -78,9 +78,9 @@ defmodule Burrito.Builder.Target do
   def make_triplet(%Target{} = target) do
     os =
       case target.os do
-        :darwin -> "macos"
-        :windows -> "windows"
-        :linux -> "linux"
+        :darwin -> "apple-darwin"
+        :windows -> "pc-windows"
+        :linux -> "unknown-linux"
       end
 
     triplet = "#{target.cpu}-#{os}"
