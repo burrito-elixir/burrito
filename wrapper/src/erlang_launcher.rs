@@ -4,10 +4,11 @@
 */
 
 use anyhow::Result;
+use paris::error;
 use std::fs;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{exit, Command};
 
 use crate::archiver::PayloadMetadata;
 use crate::errors::WrapperError;
@@ -17,7 +18,7 @@ pub fn launch_app(
     release_meta: &PayloadMetadata,
     sys_args: &Vec<String>,
 ) -> Result<()> {
-    let erl_bin_name = if cfg!(windows) { "erl.exe" } else { "erl" };
+    let erl_bin_name = if cfg!(windows) { "erlexec.exe" } else { "erlexec" };
 
     let release_cookie_path = Path::join(install_dir, "releases/COOKIE");
     let release_lib_path = Path::join(install_dir, "lib/");
@@ -75,12 +76,21 @@ pub fn launch_app(
             .env("ROOTDIR", install_dir)
             .env("BINDIR", erts_bin_path)
             .env("RELEASE_ROOT", install_dir)
-            .env("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
+            .env("RELEASE_SYS_CONFIG", config_sys_path_no_ext)
+            .env("EMU", "beam")
+            .env("PROGNAME", "erl");
     }
 
-    executable.arg("-extra").args(sys_args).exec();
+    let exec_error = executable.arg("-extra").args(sys_args).exec();
 
-    Ok(())
+    /*
+    NOTE: The program should never reach this part of the code, since exec() should never actually return.
+    If we have fallen to this point, it's an error.
+    */
+
+    error!("Erlang Exec Error: {}", exec_error);
+
+    exit(1);
 }
 
 fn buf_to_string(buf: PathBuf) -> Result<String, WrapperError> {
