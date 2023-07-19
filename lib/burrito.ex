@@ -13,10 +13,10 @@ defmodule Burrito do
   end
 
   defp pre_check() do
-    if Enum.any?(~w(zig xz), &(System.find_executable(&1) == nil)) do
+    if Enum.any?(~w(rustc xz), &(System.find_executable(&1) == nil)) do
       Log.error(
         :build,
-        "You MUST have `zig` and `xz` installed to use Burrito, we couldn't find all of them in your PATH!"
+        "You MUST have `rust` and `xz` installed to use Burrito, we couldn't find all of them in your PATH!"
       )
 
       exit(1)
