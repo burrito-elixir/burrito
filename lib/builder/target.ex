@@ -97,22 +97,22 @@ defmodule Burrito.Builder.Target do
   def make_triplet(%Target{} = target) do
     os =
       case target.os do
-        :darwin -> "macos"
-        :windows -> "windows"
-        :linux -> "linux"
+        :darwin -> "apple-darwin"
+        :windows -> "pc-windows"
+        :linux -> "unknown-linux"
       end
 
     triplet = "#{target.cpu}-#{os}"
 
     if target.qualifiers[:libc] do
-      libc = translate_libc_to_zig(target.qualifiers[:libc])
+      libc = translate_libc_to_wrapper(target.qualifiers[:libc])
       "#{triplet}-#{libc}"
     else
       triplet
     end
   end
 
-  defp translate_libc_to_zig(:gnu), do: "gnu"
-  defp translate_libc_to_zig(:musl), do: "musl"
-  defp translate_libc_to_zig(abi), do: Atom.to_string(abi)
+  defp translate_libc_to_wrapper(:gnu), do: "gnu"
+  defp translate_libc_to_wrapper(:musl), do: "musl"
+  defp translate_libc_to_wrapper(abi), do: Atom.to_string(abi)
 end
