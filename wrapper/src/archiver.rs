@@ -1,4 +1,4 @@
-use std::{io::Cursor, os::unix::prelude::PermissionsExt, path::Path};
+use std::{io::Cursor, path::Path};
 use walkdir::WalkDir;
 use binrw::{binrw, BinWrite, NullString};
 use serde::{Deserialize, Serialize};
@@ -61,7 +61,6 @@ pub fn pack_directory(path: &Path) -> Vec<u8> {
         files: file_records,
     };
 
-    // Return it and the number of files we packed up
     let mut writer = Cursor::new(Vec::new());
     final_payload
         .write_be(&mut writer)
@@ -74,6 +73,13 @@ pub fn pack_directory(path: &Path) -> Vec<u8> {
 fn create_file_record(file_path: &Path, top_path: &Path) -> Option<FoilzFileRecord> {
     match (std::fs::metadata(file_path), std::fs::read(file_path)) {
         (Ok(file_metadata), Ok(file_content)) => {
+
+            #[cfg(windows)]
+            let file_mode = 0;
+
+            #[cfg(unix)]
+            let file_mode = std::os::unix::prelude::PermissionsExt::mode(&file_metadata.permissions());
+
             let file_path = String::from(file_path.to_str()?)
                 .replace(top_path.to_str()?, "")
                 .replacen("/", "", 1);
@@ -81,7 +87,7 @@ fn create_file_record(file_path: &Path, top_path: &Path) -> Option<FoilzFileReco
                 file_path: NullString::from(file_path),
                 file_size: file_content.len() as u64,
                 file_data: file_content,
-                file_mode: file_metadata.permissions().mode(),
+                file_mode: file_mode,
             });
         }
         _ => None,

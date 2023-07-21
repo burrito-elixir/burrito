@@ -6,9 +6,12 @@
 use anyhow::Result;
 use paris::error;
 use std::fs;
+
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+
 use std::path::{Path, PathBuf};
-use std::process::{exit, Command};
+use std::process::Command;
 
 use crate::archiver::PayloadMetadata;
 use crate::errors::WrapperError;
@@ -17,8 +20,8 @@ pub fn launch_app(
     install_dir: &Path,
     release_meta: &PayloadMetadata,
     sys_args: &Vec<String>,
-) -> Result<()> {
-    let erl_bin_name = if cfg!(windows) { "erlexec.exe" } else { "erlexec" };
+) -> Result<(), WrapperError> {
+    let erl_bin_name = if cfg!(windows) { "erl.exe" } else { "erlexec" };
 
     let release_cookie_path = Path::join(install_dir, "releases/COOKIE");
     let release_lib_path = Path::join(install_dir, "lib/");
@@ -81,16 +84,26 @@ pub fn launch_app(
             .env("PROGNAME", "erl");
     }
 
-    let exec_error = executable.arg("-extra").args(sys_args).exec();
+    #[cfg(unix)]
+    {
+        let exec_error = executable.arg("-extra").args(sys_args).exec();
+        error!("Erlang Exec Error: {}", exec_error);
+    }
 
-    /*
-    NOTE: The program should never reach this part of the code, since exec() should never actually return.
-    If we have fallen to this point, it's an error.
-    */
+    #[cfg(windows)]
+    {
+        match executable.arg("-extra").args(sys_args).spawn() {
+            Ok(mut child_process) => {
+                let _ = child_process.wait();
+                return Ok(());
+            },
+            Err(exec_error) => {
+                error!("Erlang Exec Error: {}", exec_error);
+            }
+        }
+    }
 
-    error!("Erlang Exec Error: {}", exec_error);
-
-    exit(1);
+    Err(WrapperError::LaunchError)
 }
 
 fn buf_to_string(buf: PathBuf) -> Result<String, WrapperError> {

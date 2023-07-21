@@ -1,5 +1,4 @@
-use std::{env, path::{Path, PathBuf}, io::Read, fs};
-use xz::read::XzEncoder;
+use std::{env, path::{Path, PathBuf}, fs};
 
 #[path = "src/archiver.rs"]
 mod archiver;
@@ -24,15 +23,14 @@ fn main() {
     let payload_name: &Path = Path::new("./payload.foilz.xz");
 
     // Attempt to build the payload
-    let payload_bytes = archiver::pack_directory(release_path);
+    let mut payload_bytes = archiver::pack_directory(release_path);
     let metadata_string = read_metadata(release_path);
 
     // Compress bytes
-    let mut compressor = XzEncoder::new(&payload_bytes[..], 9);
+    let mut compressor = snap::raw::Encoder::new();
 
-    let mut compressed = Vec::<u8>::new();
-    match compressor.read_to_end(&mut compressed) {
-        Ok(_compressed_size) => {
+    match compressor.compress_vec(&mut payload_bytes) {
+        Ok(compressed) => {
             match fs::write(payload_name, compressed) {
                 Ok(_) => println!("Payload complete!"),
                 Err(e) => {
