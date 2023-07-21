@@ -19,8 +19,6 @@ defmodule Burrito.Steps.Build.CopyRelease do
     orig_bin_ext =
       if context.target.os == :windows do
         ".exe"
-      else
-        release_name
       end
 
     bin_name =

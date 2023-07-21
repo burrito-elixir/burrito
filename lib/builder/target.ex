@@ -79,8 +79,8 @@ defmodule Burrito.Builder.Target do
     os =
       case target.os do
         :darwin -> "apple-darwin"
-        :windows -> "pc-windows"
-        :linux -> "unknown-linux"
+        :windows -> "pc-windows-gnu"
+        :linux -> "unknown-linux-musl"
       end
 
     triplet = "#{target.cpu}-#{os}"
