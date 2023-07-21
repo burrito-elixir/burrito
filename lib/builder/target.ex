@@ -92,21 +92,10 @@ defmodule Burrito.Builder.Target do
     os =
       case target.os do
         :darwin -> "apple-darwin"
-        :windows -> "pc-windows"
-        :linux -> "unknown-linux"
+        :windows -> "pc-windows-gnu"
+        :linux -> "unknown-linux-musl"
       end
 
-    triplet = "#{target.cpu}-#{os}"
-
-    if target.qualifiers[:libc] do
-      libc = translate_libc_to_wrapper(target.qualifiers[:libc])
-      "#{triplet}-#{libc}"
-    else
-      triplet
-    end
+    "#{target.cpu}-#{os}"
   end
-
-  defp translate_libc_to_wrapper(:gnu), do: "gnu"
-  defp translate_libc_to_wrapper(:musl), do: "musl"
-  defp translate_libc_to_wrapper(abi), do: Atom.to_string(abi)
 end
