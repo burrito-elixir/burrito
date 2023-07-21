@@ -8,17 +8,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
   @impl Step
   def execute(%Context{} = context) do
-    if context.target.cross_build do
-      triplet = Target.make_triplet(context.target)
-
-      {:local_unpacked, path: erts_location} = context.target.erts_source
-
-      nif_sniff()
-      |> Enum.each(fn dep ->
-        maybe_recompile_nif(dep, context.work_dir, erts_location, triplet)
-      end)
-    end
-
+    # TODO: Nifs can only be re-compiled if Zig is present.
     context
   end
 
