@@ -188,6 +188,10 @@ Binaries built by Burrito include a built-in set of commands for performing main
 
 * `./my-binary maintenance uninstall` - Will prompt to uninstall the unpacked payload on the host machine.
 
+* `./my-binary maintenance directory`- Will print the path to the installation directory for the unpacked payload on the host machine.
+
+* `./my-binary maintenance meta` - Will print the metadata for binary.
+
 ## Advanced Build Configuration
 
 #### Build Steps and Phases
