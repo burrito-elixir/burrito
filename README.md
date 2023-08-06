@@ -114,30 +114,30 @@ You must have the following installed and in your PATH:
 
 1. Add `burrito` to your list of dependencies:
 
-```elixir
-defp deps() do
-  [{:burrito, github: "burrito-elixir/burrito"}]
-end
-```
+    ```elixir
+    defp deps do
+      [{:burrito, github: "burrito-elixir/burrito"}]
+    end
+    ```
 
 2. Create a `releases` function in your `mix.exs`, add and configure the following for your project:
 
-```elixir
-  def releases do
-  [
-    example_cli_app: [
-      steps: [:assemble, &Burrito.wrap/1],
-      burrito: [
-        targets: [
-          macos: [os: :darwin, cpu: :x86_64],
-          linux: [os: :linux, cpu: :x86_64],
-          windows: [os: :windows, cpu: :x86_64]
-        ],
+    ```elixir
+    def releases do
+      [
+        example_cli_app: [
+          steps: [:assemble, &Burrito.wrap/1],
+          burrito: [
+            targets: [
+              macos: [os: :darwin, cpu: :x86_64],
+              linux: [os: :linux, cpu: :x86_64],
+              windows: [os: :windows, cpu: :x86_64]
+            ]
+          ]
+        ]
       ]
-    ]
-  ]
-  end
-```
+    end
+    ```
 
 (See the [Mix Release Config Options](#mix-release-config-options) for additional options)
 
@@ -160,11 +160,11 @@ NOTE: In order to speed up iteration times during development, if the Mix enviro
 #### Application Entry Point
 For Burrito to work properly you must define a `:mod` in your project's Mix config:
 ```elixir
-  def application do
-    [
-      mod: {MyEntryModule, []}
-    ]
-  end
+def application do
+  [
+    mod: {MyEntryModule, []}
+  ]
+end
 ```
 This module must implement the callbacks defined by the [`Application`](https://hexdocs.pm/elixir/1.12/Application.html) module, as stated in the Mix documentation:
 
@@ -175,13 +175,13 @@ defmodule MyEntryModule do
    # Use System.halt(exit_code) to terminate the VM when required
   end
 end
-
 ```
 
 If you wish you retrieve the argv passed to your program by Burrito use this snippet:
+
 ```elixir
- args = Burrito.Util.Args.get_arguments() # this returns a list of strings
- ```
+args = Burrito.Util.Args.get_arguments() # this returns a list of strings
+```
 
 #### Maintenance Commands
 Binaries built by Burrito include a built-in set of commands for performing maintenance operations against the included application:
