@@ -72,11 +72,7 @@ defmodule Burrito.Builder.Target do
           raise "`:custom_erts` was not a URL, local path to tarball/compressed-exe, or local path to a directory"
       end
     else
-      if cross_build? do
-        {:precompiled, version: Util.get_otp_version()}
-      else
-        {:runtime, []}
-      end
+      {:precompiled, version: Util.get_otp_version()}
     end
   end
 
