@@ -40,9 +40,7 @@ defmodule Burrito.Builder.Target do
         end
       end
 
-    # translate the custom_erts (or lack of one) in a source to be resolved later
-    cross_build = is_cross_build?(fields, libc)
-    erts_source = translate_erts_source(custom_erts, cross_build)
+    erts_source = translate_erts_source(custom_erts)
 
     fields =
       fields
@@ -55,7 +53,7 @@ defmodule Burrito.Builder.Target do
     struct!(__MODULE__, fields)
   end
 
-  defp translate_erts_source(custom_location, cross_build?) do
+  defp translate_erts_source(custom_location) do
     if custom_location do
       cond do
         is_uri?(custom_location) ->
