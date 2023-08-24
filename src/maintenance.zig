@@ -95,7 +95,7 @@ pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_pa
             // Compare the version, if it's older, delete the directory
             if (std.SemanticVersion.order(current_install.?.version, other_install.?.version) == .gt) {
                 try std.fs.deleteTreeAbsolute(other_install.?.install_dir_path);
-                logger.log("Uninstalled older version (v{s})", .{other_install.?.metadata.app_version});
+                logger.log_stderr("Uninstalled older version (v{s})", .{other_install.?.metadata.app_version});
             }
         }
     }

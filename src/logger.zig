@@ -10,7 +10,7 @@ pub fn query(comptime message: []const u8, args: anytype) void {
     stdout.print("[?] {s}", .{out_string}) catch {};
 }
 
-pub fn log(comptime message: []const u8, args: anytype) void {
+pub fn log_stderr(comptime message: []const u8, args: anytype) void {
     var stderr = std.io.getStdErr().writer();
     var out_string = std.fmt.allocPrint(allocator, message, args) catch { return; };
     stderr.print("[l] {s}\n", .{out_string}) catch {};
