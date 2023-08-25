@@ -1,7 +1,7 @@
-use std::{io::Cursor, path::Path};
-use walkdir::WalkDir;
 use binrw::{binrw, BinWrite, NullString};
 use serde::{Deserialize, Serialize};
+use std::{io::Cursor, path::Path};
+use walkdir::WalkDir;
 
 #[binrw]
 pub struct FoilzFileRecord {
@@ -34,23 +34,15 @@ pub struct PayloadMetadata {
 #[allow(dead_code)]
 pub fn pack_directory(path: &Path) -> Vec<u8> {
     let mut file_records: Vec<FoilzFileRecord> = Vec::new();
+
     // Walk over the source directory recursively
     for entry in WalkDir::new(path) {
         // Ensure we have a valid entry, then ensure it's a file
-        match entry {
-            Ok(dir_entry) => {
-                if dir_entry.path().is_file() {
-                    // Create file record
-                    match create_file_record(dir_entry.path(), path) {
-                        Some(new_record) => {
-                            file_records.push(new_record);
-                        }
-                        None => continue,
-                    }
-                }
-            }
-            Err(e) => {
-                panic!("Error reading directory entry: {e}");
+        let dir_entry = entry.expect("Error reading directory entry");
+
+        if dir_entry.path().is_file() {
+            if let Some(new_record) = create_file_record(dir_entry.path(), path) {
+                file_records.push(new_record);
             }
         }
     }
@@ -65,31 +57,30 @@ pub fn pack_directory(path: &Path) -> Vec<u8> {
     final_payload
         .write_be(&mut writer)
         .expect("Failed to serialize payload struct!");
+
     writer.into_inner().to_owned()
 }
 
 // This isn't actually dead code, it's used by the build.rs script!
 #[allow(dead_code)]
 fn create_file_record(file_path: &Path, top_path: &Path) -> Option<FoilzFileRecord> {
-    match (std::fs::metadata(file_path), std::fs::read(file_path)) {
-        (Ok(file_metadata), Ok(file_content)) => {
+    let file_metadata = std::fs::metadata(file_path).ok()?;
+    let file_data = std::fs::read(file_path).ok()?;
 
-            #[cfg(windows)]
-            let file_mode = 0;
+    #[cfg(windows)]
+    let file_mode = 0;
 
-            #[cfg(unix)]
-            let file_mode = std::os::unix::prelude::PermissionsExt::mode(&file_metadata.permissions());
+    #[cfg(unix)]
+    let file_mode = std::os::unix::prelude::PermissionsExt::mode(&file_metadata.permissions());
 
-            let file_path = String::from(file_path.to_str()?)
-                .replace(top_path.to_str()?, "")
-                .replacen("/", "", 1);
-            return Some(FoilzFileRecord {
-                file_path: NullString::from(file_path),
-                file_size: file_content.len() as u64,
-                file_data: file_content,
-                file_mode: file_mode,
-            });
-        }
-        _ => None,
-    }
+    let file_path = String::from(file_path.to_str()?)
+        .replace(top_path.to_str()?, "")
+        .replacen("/", "", 1);
+
+    Some(FoilzFileRecord {
+        file_path: NullString::from(file_path),
+        file_size: file_data.len() as u64,
+        file_data,
+        file_mode,
+    })
 }
