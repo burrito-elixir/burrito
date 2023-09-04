@@ -1,4 +1,7 @@
-use std::{env, path::{Path, PathBuf}, fs};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 #[path = "src/archiver.rs"]
 mod archiver;
@@ -7,16 +10,16 @@ fn main() {
     // This is a hack to get around local development, if you're working in an IDE/Editor
     // That's using the rust-analyzer, it'll rebuild the payload over and over, so this forces it to skip
     // the payload pack and compress entirely.
-    if get_env_variable("__BURRITO") != "1" {
+    if !get_env_bool("__BURRITO") {
         set_release_env(false, "empty".to_owned(), "{}".to_owned());
         return;
     }
 
     // This build script uses the data passed in via env variable via Burrito to build and pack the release
-    let release_path_string: String = get_env_variable("__BURRITO_RELEASE_PATH");
-    let release_name: String = get_env_variable("__BURRITO_RELEASE_NAME");
-    // let plugin_path_string: String = get_env_variable("__BURRITO_PLUGIN_PATH");
-    let is_prod: bool = get_env_variable("__BURRITO_IS_PROD") == "1";
+    let release_path_string: String = get_env_string("__BURRITO_RELEASE_PATH");
+    let release_name: String = get_env_string("__BURRITO_RELEASE_NAME");
+    // let plugin_path_string: String = get_env_string("__BURRITO_PLUGIN_PATH");
+    let is_prod: bool = get_env_bool("__BURRITO_IS_PROD");
 
     // Construct payload path
     let release_path: &Path = Path::new(&release_path_string);
@@ -24,44 +27,37 @@ fn main() {
 
     // Attempt to build the payload
     let mut payload_bytes = archiver::pack_directory(release_path);
-    let metadata_string = read_metadata(release_path);
+    let metadata = read_metadata(release_path);
 
     // Compress bytes
     let mut compressor = snap::raw::Encoder::new();
 
-    match compressor.compress_vec(&mut payload_bytes) {
-        Ok(compressed) => {
-            match fs::write(payload_name, compressed) {
-                Ok(_) => println!("Payload complete!"),
-                Err(e) => {
-                    panic!("Failed to write payload to disk: {e}");
-                }
-            }
-        }
-        Err(e) => {
-            panic!("Failed to compress payload: {e}");
-        }
-    }
+    let compressed = compressor
+        .compress_vec(&mut payload_bytes)
+        .expect("Failed to compress payload");
 
-    set_release_env(is_prod, release_name, metadata_string);
+    fs::write(payload_name, compressed).expect("Failed to write payload to disk");
+
+    println!("Payload complete!");
+
+    set_release_env(is_prod, release_name, metadata);
 }
 
-fn get_env_variable(key: &str) -> String {
-    match env::var(key) {
-        Ok(val) => val,
-        Err(_e) => {
-            "".to_owned()
-        }
-    }
+fn get_env_bool(key: &str) -> bool {
+    get_env_string(key) == "1"
 }
 
-fn set_release_env(is_prod: bool, release_name: String, metedata: String) {
+fn get_env_string(key: &str) -> String {
+    env::var(key).unwrap_or_else(|_| "".to_owned())
+}
+
+fn set_release_env(is_prod: bool, release_name: String, metadata: String) {
     if is_prod {
         println!("cargo:rustc-env=IS_PROD=1");
     }
-    
+
     println!("cargo:rustc-env=RELEASE_NAME={release_name}");
-    println!("cargo:rustc-env=RELEASE_METADATA={metedata}");
+    println!("cargo:rustc-env=RELEASE_METADATA={metadata}");
 }
 
 fn read_metadata(release_path: &Path) -> String {
