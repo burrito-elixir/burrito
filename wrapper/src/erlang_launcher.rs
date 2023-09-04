@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::process::{abort, exit, Command};
 
 use crate::archiver::PayloadMetadata;
-use crate::errors::WrapperError;
+use crate::errors::LauncherError;
 
 macro_rules! build_path {
     ($root:expr,$path:expr) => {
@@ -28,7 +28,7 @@ pub fn launch_app(
     install_dir: &Path,
     release_meta: &PayloadMetadata,
     sys_args: &Vec<String>,
-) -> Result<(), WrapperError> {
+) -> Result<(), LauncherError> {
     let erl_bin_name = if cfg!(windows) { "erl.exe" } else { "erlexec" };
 
     let release_cookie_path = build_path!(install_dir, "releases/COOKIE")?;
@@ -53,7 +53,7 @@ pub fn launch_app(
     let erl_bin_path = build_path!(install_dir, "{}/bin/{}", erts_version_name, erl_bin_name)?;
 
     let release_cookie_file =
-        fs::read_to_string(release_cookie_path).map_err(|_| WrapperError::LaunchCookieReadError)?;
+        fs::read_to_string(release_cookie_path).map_err(|_| LauncherError::CookieReadError)?;
 
     let mut executable = Command::new(erl_bin_path);
     executable
@@ -92,16 +92,16 @@ pub fn launch_app(
     } else if cfg!(windows) {
         handle_windows_exec(&mut executable)
     } else {
-        Err(WrapperError::LaunchUnsupportedPlatformError)
+        Err(LauncherError::UnsupportedPlatformError)
     }
 }
 
-fn handle_unix_exec(executable: &mut Command) -> Result<(), WrapperError> {
+fn handle_unix_exec(executable: &mut Command) -> Result<(), LauncherError> {
     let exec_error = executable.exec();
-    Err(WrapperError::LaunchErlangError(exec_error))
+    Err(LauncherError::ErlangError(exec_error))
 }
 
-fn handle_windows_exec(executable: &mut Command) -> Result<(), WrapperError> {
+fn handle_windows_exec(executable: &mut Command) -> Result<(), LauncherError> {
     executable
         .spawn()
         .and_then(|mut child_process| child_process.wait())
@@ -109,11 +109,11 @@ fn handle_windows_exec(executable: &mut Command) -> Result<(), WrapperError> {
             Some(code) => exit(code),
             None => abort(),
         })
-        .map_err(|exec_error| WrapperError::LaunchErlangError(exec_error))
+        .map_err(|err| LauncherError::ErlangError(err))
 }
 
-fn buf_to_string(buf: PathBuf) -> Result<String, WrapperError> {
+fn buf_to_string(buf: PathBuf) -> Result<String, LauncherError> {
     buf.into_os_string()
         .into_string()
-        .map_err(|_| WrapperError::LaunchEncodingError)
+        .map_err(|_| LauncherError::EncodingError)
 }
