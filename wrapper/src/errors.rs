@@ -13,7 +13,9 @@ pub enum WrapperError {
     ExtractChmodFailed(String),
     #[error("Invalid installation directory")]
     ExtractInvalidInstallDir,
-    #[error("We could not compute a valid installation directory, your platform may not be supported!")]
+    #[error(
+        "Could not compute a valid installation directory, your platform may not be supported!"
+    )]
     ExtractCannotComputeInstallDir,
 
     // Metadata related errors
@@ -24,5 +26,9 @@ pub enum WrapperError {
     #[error("Could not read the COOKIE file for the release!")]
     LaunchCookieReadError,
     #[error("Erlang launcher error. Please file an issue with the Burrito project.")]
-    LaunchError
+    LaunchEncodingError,
+    #[error("Erlang exec error: {0}")]
+    LaunchErlangError(#[from] std::io::Error),
+    #[error("Could not launch the application, your host platform is not supported!")]
+    LaunchUnsupportedPlatformError,
 }
