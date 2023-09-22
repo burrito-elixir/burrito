@@ -4,56 +4,27 @@
 */
 
 use anyhow::Result;
-use std::fs;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{abort, exit, Command};
 
-use crate::archiver::PayloadMetadata;
 use crate::errors::LauncherError;
+use crate::release::Release;
 
-macro_rules! build_path {
-    ($root:expr,$path:expr) => {
-        buf_to_string($root.join($path))
-    };
-    ($root:expr, $pattern:expr, $($value:expr),+) => {
-        buf_to_string($root.join(format!($pattern, $($value),+)))
-    };
-}
-
-pub fn launch_app(
-    install_dir: &Path,
-    release_meta: &PayloadMetadata,
-    sys_args: &Vec<String>,
-) -> Result<(), LauncherError> {
-    let erl_bin_name = if cfg!(windows) { "erl.exe" } else { "erlexec" };
-
-    let release_cookie_path = build_path!(install_dir, "releases/COOKIE")?;
-    let release_lib_path = build_path!(install_dir, "lib/")?;
-
-    let install_vm_args_path =
-        build_path!(install_dir, "releases/{}/vm.args", release_meta.app_version)?;
-
-    let config_sys_path = build_path!(
-        install_dir,
-        "releases/{}/sys.config",
-        release_meta.app_version
-    )?;
-
+pub fn launch_app(release: &Release, sys_args: &Vec<String>) -> Result<(), LauncherError> {
+    let erl_bin_path = buf_to_string("erl bin path", release.erl_bin_path())?;
+    let release_cookie_file = release.load_cookie_file()?;
+    let boot_path = buf_to_string("boot path", release.boot_path())?;
+    let release_lib_path = buf_to_string("release lib path", release.lib_path())?;
+    let install_vm_args_path = buf_to_string("vm args path", release.install_vm_args_path())?;
+    let config_sys_path = buf_to_string("config sys path", release.config_sys_path())?;
+    let install_dir = buf_to_string("install directory", release.install_dir())?;
     let config_sys_path_no_ext =
-        build_path!(install_dir, "releases/{}/sys", release_meta.app_version)?;
-
-    let boot_path = build_path!(install_dir, "releases/{}/start", release_meta.app_version)?;
-
-    let erts_version_name = format!("erts-{}", release_meta.erts_version);
-    let erts_bin_path = build_path!(install_dir, "{}/bin", erts_version_name)?;
-    let erl_bin_path = build_path!(install_dir, "{}/bin/{}", erts_version_name, erl_bin_name)?;
-
-    let release_cookie_file =
-        fs::read_to_string(release_cookie_path).map_err(|_| LauncherError::CookieReadError)?;
+        buf_to_string("config sys path", release.config_sys_path_no_ext())?;
+    let erts_bin_path = buf_to_string("erts bin path", release.erts_bin_path())?;
 
     let mut executable = Command::new(erl_bin_path);
     executable
@@ -74,12 +45,12 @@ pub fn launch_app(
         .arg(config_sys_path);
 
     executable
-        .env("RELEASE_ROOT", install_dir)
+        .env("RELEASE_ROOT", &install_dir)
         .env("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
 
     if !cfg!(windows) {
         executable
-            .env("ROOTDIR", install_dir)
+            .env("ROOTDIR", &install_dir)
             .env("BINDIR", erts_bin_path)
             .env("EMU", "beam")
             .env("PROGNAME", "erl");
@@ -102,18 +73,17 @@ fn handle_unix_exec(executable: &mut Command) -> Result<(), LauncherError> {
 }
 
 fn handle_windows_exec(executable: &mut Command) -> Result<(), LauncherError> {
-    executable
-        .spawn()
-        .and_then(|mut child_process| child_process.wait())
-        .map(|exit_status| match exit_status.code() {
-            Some(code) => exit(code),
-            None => abort(),
-        })
-        .map_err(|err| LauncherError::ErlangError(err))
+    let mut child_process = executable.spawn()?;
+    let exit_status = child_process.wait()?;
+
+    match exit_status.code() {
+        Some(code) => exit(code),
+        None => abort(),
+    }
 }
 
-fn buf_to_string(buf: PathBuf) -> Result<String, LauncherError> {
+fn buf_to_string(name: &str, buf: PathBuf) -> Result<String, LauncherError> {
     buf.into_os_string()
         .into_string()
-        .map_err(|_| LauncherError::EncodingError)
+        .map_err(|_| LauncherError::EncodingError(name.to_string()))
 }
