@@ -43,6 +43,10 @@ defmodule Burrito.Util.DefaultERTSResolver do
     %Target{target | erts_source: {:local_unpacked, path: unpacked_location}}
   end
 
+  def do_resolve(%Target{erts_source: {:local_unpacked, path: _location}} = target) do
+    target
+  end
+
   defp get_erts(tar_url) do
     cache_key = :crypto.hash(:sha, tar_url) |> Base.encode16()
 
