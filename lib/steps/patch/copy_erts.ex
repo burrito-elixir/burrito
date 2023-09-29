@@ -37,11 +37,7 @@ defmodule Burrito.Steps.Patch.CopyERTS do
     File.mkdir!(dest_bin_path)
 
     # Copy in new bins from unpacked ERTS
-    unpacked_path =
-      Path.join(erts_location, ["otp*/**/", "erts-*/"])
-      |> Path.expand()
-      |> Path.wildcard()
-      |> List.first()
+    unpacked_path = recursively_find_dir([erts_location], ~r/^erts-.*$/)
 
     src_bin_path = Path.join(unpacked_path, ["bin/"])
 
@@ -49,22 +45,21 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
     # The ERTS comes with some pre-built NIFs, so we need to replace those
 
-    src_lib_path =
-      Path.join(erts_location, ["otp*/", "lib/"])
-      |> Path.expand()
-      |> Path.wildcard()
-      |> List.first()
+    src_lib_path = recursively_find_dir([erts_location], ~r/^lib$/)
 
     dest_lib_path = Path.join(context.work_dir, ["lib/"]) |> Path.expand()
 
     # List the DLL/SO files that come from our replacement ERTS
     # The new ERTS is treated as the "authoritative" ERTS, some DLLs/SOs may exist in it
     # That do not exist in the host/source ERTS. We'll log when we replace a library file
-    to_copy = Path.join(erts_location, "*/lib/**/*.{so,dll,exe}") |> Path.expand() |> Path.wildcard()
+    to_copy =
+      Path.join(erts_location, "*/lib/**/*.{so,dll,exe}") |> Path.expand() |> Path.wildcard()
 
     Enum.each(to_copy, fn file_to_copy ->
       destination_file_path = String.replace(file_to_copy, src_lib_path, dest_lib_path)
-      possible_file_to_replace = String.replace_suffix(destination_file_path, Path.extname(to_copy), "*.{so,dll}")
+
+      possible_file_to_replace =
+        String.replace_suffix(destination_file_path, Path.extname(to_copy), "*.{so,dll}")
         |> Path.wildcard()
         |> List.first()
 
@@ -73,6 +68,7 @@ defmodule Burrito.Steps.Patch.CopyERTS do
 
       if possible_file_to_replace != nil do
         File.rm!(possible_file_to_replace)
+
         Log.warning(
           :step,
           "Overwriting NIF library #{possible_file_to_replace} with #{file_to_copy}"
@@ -80,10 +76,30 @@ defmodule Burrito.Steps.Patch.CopyERTS do
       end
 
       File.copy!(file_to_copy, destination_file_path)
+
       Log.success(
         :step,
         "Installed NIF library #{destination_file_path}"
       )
     end)
+  end
+
+  defp recursively_find_dir([], _target_dir_pattern), do: nil
+
+  defp recursively_find_dir([current_path | rest], target_dir_pattern) do
+    case String.match?(Path.basename(current_path), target_dir_pattern) do
+      true ->
+        current_path
+
+      false ->
+        dir_paths =
+          for file_name <- File.ls!(current_path),
+              File.dir?(Path.join(current_path, file_name)),
+              not String.starts_with?(file_name, ".") do
+            Path.join(current_path, file_name)
+          end
+
+        recursively_find_dir(rest ++ dir_paths, target_dir_pattern)
+    end
   end
 end
