@@ -55,7 +55,7 @@ pub fn main() anyerror!void {
         var windows_arg_list = std.ArrayList([]u8).init(allocator);
         var i: c_int = 0;
         while (i < arg_count) : (i += 1) {
-            var index = @intCast(usize, i);
+            var index = i;
             var length = std.mem.len(raw_args.?[index]);
             const argument = try std.unicode.utf16leToUtf8Alloc(allocator, raw_args.?[index][0..length]);
             try windows_arg_list.append(argument);

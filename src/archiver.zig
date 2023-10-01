@@ -62,7 +62,7 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
     try write_magic_number(&foilz_writer);
 
     while (try walker.next()) |entry| {
-        if (entry.kind == .File) {
+        if (entry.kind == .file) {
             // Replace some path string data for the tar index name
             // specifically replace: '../_build/prod/rel/' --> ''
             // This just makes it easier to write the files out later on the destination machine
@@ -210,7 +210,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
             }
             file.close();
         } else {
-            const file = try fs.createFileAbsolute(full_file_path, .{ .truncate = true, .mode = @intCast(os.mode_t, file_mode) });
+            const file = try fs.createFileAbsolute(full_file_path, .{ .truncate = true, .mode = @intCast(file_mode) });
             if (file_len > 0) {
                 try file.writeAll(file_data);
             }
