@@ -78,7 +78,7 @@ pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_pa
 
     var itr = prefix_dir.iterate();
     while (try itr.next()) |dir| {
-        if (dir.kind == .Directory) {
+        if (dir.kind == .directory) {
             const possible_app_path = try std.fs.path.join(allocator, &[_][]const u8{ install_prefix_path, dir.name });
             const other_install = try install.load_install_from_path(allocator, possible_app_path);
 

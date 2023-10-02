@@ -104,7 +104,7 @@ That being said, we're excited by our early use of the tooling, and are eager to
 
 You must have the following installed and in your PATH:
 
-* Zig (0.10.0) -- `zig`
+* Zig (0.11.0) -- `zig`
 * XZ -- `xz`
 * 7z -- `7z` (For Windows Targets)
 
