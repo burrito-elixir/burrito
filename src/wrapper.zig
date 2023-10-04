@@ -53,7 +53,7 @@ pub fn main() anyerror!void {
         var arg_count: c_int = undefined;
         var raw_args = CommandLineToArgvW(GetCommandLineW(), &arg_count);
         var windows_arg_list = std.ArrayList([]u8).init(allocator);
-        var i: c_int = 0;
+        var i: usize = 0;
         while (i < arg_count) : (i += 1) {
             var index = i;
             var length = std.mem.len(raw_args.?[index]);
