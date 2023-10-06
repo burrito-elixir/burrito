@@ -57,7 +57,7 @@ defmodule Burrito.Builder.Target do
     if custom_location do
       cond do
         is_uri?(custom_location) ->
-          {:url, url: custom_location}
+          {:url, url: URI.new!(custom_location)}
 
         String.ends_with?(custom_location, ".tar.gz") or
             String.ends_with?(custom_location, ".exe") ->
