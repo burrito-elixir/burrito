@@ -89,7 +89,7 @@ defmodule Burrito.Steps.Patch.CopyERTS do
   defp recursively_find_dir([current_path | rest], target_dir_pattern) do
     case String.match?(Path.basename(current_path), target_dir_pattern) do
       true ->
-        current_path
+        Path.expand(current_path)
 
       false ->
         dir_paths =
