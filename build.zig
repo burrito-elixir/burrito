@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const foilz = @import("src/archiver.zig");
+const builtin = @import("builtin");
 
 const log = std.log;
 
@@ -16,6 +17,10 @@ var builder: *Builder = undefined;
 var target: *const CrossTarget = undefined;
 
 var wrapper_exe: *LibExeObjStep = undefined;
+
+// Memory allocator
+var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+var allocator = arena.allocator();
 
 pub fn build(b: *Builder) !void {
     log.info("Zig is building an Elixir binary... ⚡", .{});
@@ -33,18 +38,22 @@ pub fn build(b: *Builder) !void {
 pub fn run_archiver() !void {
     log.info("Generating and compressing release payload... 📦", .{});
 
-    const release_path = std.os.getenv("__BURRITO_RELEASE_PATH");
-    try foilz.pack_directory(release_path.?, "./payload.foilz");
+    const release_path = try std.process.getEnvVarOwned(allocator, "__BURRITO_RELEASE_PATH");
+    try foilz.pack_directory(release_path, "./payload.foilz");
 
-    _ = builder.exec(&[_][]const u8{ "/bin/sh", "-c", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+    if (builtin.os.tag == .windows) {
+        _ = builder.exec(&[_][]const u8{ "cmd", "/C", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+    } else {
+        _ = builder.exec(&[_][]const u8{ "/bin/sh", "-c", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+    }
 }
 
 pub fn build_wrapper() !void {
     log.info("Building wrapper and embedding payload... 🌯", .{});
 
-    const release_name = std.os.getenv("__BURRITO_RELEASE_NAME");
-    const plugin_path = std.os.getenv("__BURRITO_PLUGIN_PATH");
-    const is_prod = std.os.getenv("__BURRITO_IS_PROD");
+    const release_name = try std.process.getEnvVarOwned(allocator, "__BURRITO_RELEASE_NAME");
+    const plugin_path = std.process.getEnvVarOwned(allocator, "__BURRITO_PLUGIN_PATH") catch null;
+    const is_prod = std.process.getEnvVarOwned(allocator, "__BURRITO_IS_PROD") catch "true";
     _ = is_prod;
 
     var file = try std.fs.cwd().openFile("payload.foilz", .{});
@@ -52,7 +61,7 @@ pub fn build_wrapper() !void {
     const uncompressed_size = try file.getEndPos();
 
     wrapper_exe = builder.addExecutable(.{
-        .name = release_name.?,
+        .name = release_name,
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/wrapper.zig" },
@@ -63,7 +72,7 @@ pub fn build_wrapper() !void {
     const exe_options = builder.addOptions();
     wrapper_exe.addOptions("build_options", exe_options);
 
-    exe_options.addOption([]const u8, "RELEASE_NAME", release_name.?);
+    exe_options.addOption([]const u8, "RELEASE_NAME", release_name);
     exe_options.addOption(u64, "UNCOMPRESSED_SIZE", uncompressed_size);
 
     exe_options.addOption(bool, "IS_PROD", true);
