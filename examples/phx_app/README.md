@@ -9,6 +9,9 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
+To run your phoenix app with burrito you may need to set some env variables or edit the `config/runtime.ex` file:
+`PHX_SERVER=true DATABASE_PATH=phx_app_dev.db ./burrito_out/phx_app_linux`
+
 ## Learn more
 
   * Official website: https://www.phoenixframework.org/
