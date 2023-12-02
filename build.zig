@@ -53,8 +53,12 @@ pub fn build_wrapper() !void {
 
     const release_name = try std.process.getEnvVarOwned(allocator, "__BURRITO_RELEASE_NAME");
     const plugin_path = std.process.getEnvVarOwned(allocator, "__BURRITO_PLUGIN_PATH") catch null;
-    const is_prod = std.process.getEnvVarOwned(allocator, "__BURRITO_IS_PROD") catch "true";
-    _ = is_prod;
+    const is_prod = std.process.getEnvVarOwned(allocator, "__BURRITO_IS_PROD") catch "1";
+    var opt_level = std.builtin.Mode.Debug;
+
+    if (std.mem.eql(u8, is_prod, "1")) {
+        opt_level = std.builtin.Mode.ReleaseSmall;
+    }
 
     var file = try std.fs.cwd().openFile("payload.foilz", .{});
     defer file.close();
@@ -66,7 +70,7 @@ pub fn build_wrapper() !void {
         // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/wrapper.zig" },
         .target = target.*,
-        .optimize = .ReleaseSmall,
+        .optimize = opt_level,
     });
 
     const exe_options = builder.addOptions();
@@ -75,7 +79,7 @@ pub fn build_wrapper() !void {
     exe_options.addOption([]const u8, "RELEASE_NAME", release_name);
     exe_options.addOption(u64, "UNCOMPRESSED_SIZE", uncompressed_size);
 
-    exe_options.addOption(bool, "IS_PROD", true);
+    exe_options.addOption(bool, "IS_PROD", std.mem.eql(u8, is_prod, "1"));
 
     if (target.isWindows()) {
         wrapper_exe.addIncludePath(.{ .path = "src/" });
