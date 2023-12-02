@@ -19,6 +19,7 @@
   * [Build Targets and Qualifiers](#build-targets-and-qualifiers)
   * [Using custom ERTS builds](#using-custom-erts-builds)
 * [Known Limitations and Issues](#known-limitations-and-issues)
+  * [Phoenix Applications](#phx-tips)
   * [Runtime Requirements](#runtime-requirements)
 * [Contributing](#contributing)
   * [Welcome!](#welcome)
@@ -348,6 +349,22 @@ tar czf my_custom_erts.tar.gz otp-A.B.C-OS-ARCH
 ```
 
 ## Known Limitations and Issues
+
+#### Phx Tips
+
+In order to run a Phoenix app with Burrito, you may need to edit your `runtime.exs` file to ensure it will always start up the server:
+
+```elixir
+# This is the default line in runtime.exs, you can remove the if statement wrapping this config line, or check for other conditions:
+if System.get_env("PHX_SERVER") do
+  config :phx_app, PhxAppWeb.Endpoint, server: true
+end
+```
+
+If you do not want to edit `runtime.exs` just ensure the environment variable `PHX_SERVER` is set to `1` when you launch your burrito wrapped binary. Otherwise it will simply exit without starting your server application.
+
+Additionally, you should take care to ensure you compile your assets BEFORE you wrap your application with Burrito.
+
 #### Runtime Requirements
 Minimizing the runtime dependencies of the package binaries is an explicit design goal, and the requirements for each platform are as follows:
 ##### Windows
