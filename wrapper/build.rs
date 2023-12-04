@@ -11,7 +11,11 @@ fn main() {
     // That's using the rust-analyzer, it'll rebuild the payload over and over, so this forces it to skip
     // the payload pack and compress entirely.
     if !get_env_bool("__BURRITO") {
-        set_release_env(false, "empty".to_owned(), "{}".to_owned());
+        set_release_env(
+            false,
+            get_env_string_default("__BURRITO_DEV_RELEASE_NAME", "empty"),
+            get_env_string_default("__BURRITO_DEV_RELEASE_METADATA", "{}"),
+        );
         return;
     }
 
@@ -48,7 +52,11 @@ fn get_env_bool(key: &str) -> bool {
 }
 
 fn get_env_string(key: &str) -> String {
-    env::var(key).unwrap_or_else(|_| "".to_owned())
+    get_env_string_default(key, "")
+}
+
+fn get_env_string_default(key: &str, default: &str) -> String {
+    env::var(key).unwrap_or_else(|_| default.to_owned())
 }
 
 fn set_release_env(is_prod: bool, release_name: String, metadata: String) {

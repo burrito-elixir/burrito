@@ -2,11 +2,12 @@ use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use crate::archiver::PayloadMetadata;
+use crate::console::{info, IO};
 use crate::errors::ReleaseError;
 
-use paris::info;
-
 pub const INSTALL_SUFFIX: &str = ".burrito";
+pub const RELEASE_NAME: &str = env!("RELEASE_NAME");
+pub const RELEASE_METADATA_STR: &str = env!("RELEASE_METADATA");
 
 macro_rules! build_path {
   ($root:expr, $path:expr) => {
@@ -23,9 +24,9 @@ pub struct Release {
 }
 
 impl Release {
-    pub fn new(release_name: &str, release_metadata_str: &str) -> Result<Release, ReleaseError> {
-        let release_meta = parse_metadata(release_metadata_str)?;
-        let install_dir = calculate_install_dir(release_name, &release_meta)?;
+    pub fn load<I: IO>(io: &mut I) -> Result<Release, ReleaseError> {
+        let release_meta = parse_metadata(RELEASE_METADATA_STR)?;
+        let install_dir = calculate_install_dir(io, RELEASE_NAME, &release_meta)?;
 
         Ok(Release {
             release_meta: release_meta,
@@ -109,7 +110,8 @@ impl Release {
     }
 }
 
-fn calculate_install_dir(
+fn calculate_install_dir<I: IO>(
+    io: &mut I,
     release_name: &str,
     release_meta: &PayloadMetadata,
 ) -> Result<PathBuf, ReleaseError> {
@@ -122,10 +124,11 @@ fn calculate_install_dir(
 
     let possible_env_override = env::var(install_dir_env_name).map(|path_override| {
         info!(
-            "Install path is being overridden using env var: {}_INSTALL_PATH",
+            io,
+            "Install path is being overridden using env var: <variable>{}_INSTALL_PATH</>",
             release_name
         );
-        info!("New install path is: {}", path_override);
+        info!(io, "New install path is <path>`{}`</>", path_override);
 
         Path::new(&path_override).to_path_buf()
     });
