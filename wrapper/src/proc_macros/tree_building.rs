@@ -1,5 +1,8 @@
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
+/* Helpers for building token trees
+*/
+
 pub fn string_literal(str: &str) -> TokenTree {
     let str = Literal::string(str);
     TokenTree::Literal(str)
