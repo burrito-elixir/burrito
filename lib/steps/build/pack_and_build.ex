@@ -26,6 +26,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Path.join(context.work_dir, ["/lib", "/.burrito"]) |> File.touch!()
 
     build_env = [
+      {"__BURRITO", "1"},
       {"__BURRITO_IS_PROD", is_prod(context.target)},
       {"__BURRITO_RELEASE_PATH", context.work_dir},
       {"__BURRITO_RELEASE_NAME", release_name},
