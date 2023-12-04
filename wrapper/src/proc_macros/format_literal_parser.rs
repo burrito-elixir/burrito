@@ -110,6 +110,7 @@ impl fmt::Debug for FormatLiteral {
     }
 }
 
+// SINGLE_ESCAPE = "n" | "r" | "t" | "\" | "0" | %x22
 fn parse_single_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
     map(one_of("nrt\\0'\""), |x| {
         let code = match x {
@@ -119,13 +120,14 @@ fn parse_single_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
             '\\' => '\\',
             '0' => '\0',
             '"' => '"',
-            _ => panic!("Unexpected escape - this should be impossible"),
+            _ => panic!("Unexpected escape sequence - this should be impossible"),
         };
 
         FormatLiteralSegment::EscapeSegment(code.to_string())
     })(input)
 }
 
+// ASCII_ESCAPE = "x" 2HEX_DIGIT
 fn parse_ascii_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
     map(
         preceded(char('x'), take_while_m_n(2, 2, is_hex_char)),
@@ -133,6 +135,7 @@ fn parse_ascii_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
     )(input)
 }
 
+// UNICODE_ESCAPE = "u{" 1*6HEX_DIGIT "}"
 fn parse_unicode_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
     map(
         preceded(
@@ -143,6 +146,34 @@ fn parse_unicode_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
     )(input)
 }
 
+// COLOR_TAG_ESCAPE = "<"
+fn parse_color_tag_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
+    map(tag("<"), |s: &str| {
+        FormatLiteralSegment::TextSegment(s.to_string())
+    })(input)
+}
+
+// ESCAPE_SEGMENT = "\" ( SINGLE_ESCAPE | ASCII_ESCAPE | UNICODE_ESCAPE | COLOR_TAG_ESCAPE )
+fn parse_backslash_escape_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
+    preceded(
+        char('\\'),
+        alt((
+            parse_single_escape,
+            parse_ascii_escape,
+            parse_unicode_escape,
+            parse_color_tag_escape,
+        )),
+    )(input)
+}
+
+// Parses anything that is not a color tag or an escape sequence.
+fn parse_misc_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
+    map(is_not("\\<\""), |s: &str| {
+        FormatLiteralSegment::TextSegment(s.to_string())
+    })(input)
+}
+
+// COLOR_TAG_SEGMENT = "<" ( "/" | "//" | "///" | SNAKE_CASE_START SNAKE_CASE_CHAR* ) ">"
 fn parse_color_tag_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
     let color_type = alt((
         map(tag("/"), |_c| StyleTag::StyleClearAll),
@@ -156,30 +187,7 @@ fn parse_color_tag_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
     })(input)
 }
 
-fn parse_color_tag_escape(input: &str) -> IResult<&str, FormatLiteralSegment> {
-    map(tag("<"), |s: &str| {
-        FormatLiteralSegment::TextSegment(s.to_string())
-    })(input)
-}
-
-fn parse_backslash_escape_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
-    preceded(
-        char('\\'),
-        alt((
-            parse_single_escape,
-            parse_ascii_escape,
-            parse_unicode_escape,
-            parse_color_tag_escape,
-        )),
-    )(input)
-}
-
-fn parse_misc_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
-    map(is_not("\\<\""), |s: &str| {
-        FormatLiteralSegment::TextSegment(s.to_string())
-    })(input)
-}
-
+// FORMAT_LITERAL = *( COLOR_TAG_SEGMENT | ESCAPE_SEGMENT | MISC_SEGMENT )
 pub fn parse_format_literal(input: &str) -> Result<FormatLiteral, FormatLiteralParserError> {
     let parse_inner_content = many0(alt((
         parse_color_tag_segment,

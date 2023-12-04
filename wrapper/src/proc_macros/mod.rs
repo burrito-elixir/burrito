@@ -54,6 +54,8 @@ pub fn loading(r: TokenStream) -> TokenStream {
 fn process_stream(ts: TokenStream, command: &str) -> Result<TokenStream, FormatLiteralParserError> {
     let mut items = ts.into_iter();
 
+    // Collect all segments up until the first comma, treat these as
+    // the IO instance to reference for IO operations.
     let mut io_segment: Vec<TokenTree> = Vec::new();
     while let Some(ref item) = items.next() {
         match item {
@@ -68,24 +70,46 @@ fn process_stream(ts: TokenStream, command: &str) -> Result<TokenStream, FormatL
         }
     }
 
+    // Get the existing unstyled template literal
     let existing_literal = items
         .next()
         .ok_or(FormatLiteralParserError::MissingLiteral)?;
 
+    // Parse the template literal to collect style tags
     let format_literal = parse_format_literal(existing_literal.to_string().as_str())?;
+    // Serialize the format literal back into a string, replacing the style tags with
+    // template variables for rendering the styles.
     let updated_literal = string_literal(format_literal.to_string().as_str());
 
+    // Add finalized literal into call arg list for format!
     let mut format_call_args = Vec::new();
     format_call_args.push(updated_literal);
 
+    // Collect the remaining arguments passed to the macro to splice into the format! call
     while let Some(tree) = items.next() {
         format_call_args.push(tree.clone());
     }
 
     let io = group(io_segment);
 
-    // The output of this macro is wrapped within a closure, the contents are built up
-    // from the style tag references and the final formatting call
+    /* The output of this macro is wrapped within a closure, it contains let bindings
+       that hold the rendered styles, and the final formatting call which utilizes those variables.
+
+       log!(io, "This is <mystyle>{}</>", "style")
+
+       {
+          let __macro_style_custom_mystyle__ = io.render_style("custom_mystyle");
+          let __macro_style_clear_all__ = io.render_style("clear_all");
+          io.log(
+            format!(
+              "This is {__macro_style_custom_mystyle__}{}{__macro_style_clear_all__}",
+              "style",
+              __macro_style_custom_mystyle__ = __macro_style_custom_mystyle__,
+              __macro_style_clear_all__ = __macro_style_clear_all__
+            )
+          )
+       }
+    */
     let mut closure_items = vec![];
     for style_tag in format_literal.style_tags() {
         format_call_args.push(group(vec![

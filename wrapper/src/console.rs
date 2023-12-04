@@ -3,6 +3,11 @@ use std::{
     io::{stdin, Stdin},
 };
 
+/* This module defines a trait for handling user input and output. The IO
+   implementation is dependency injected at runtime, allowing for custom output
+   drains, conditional styling, and testing capabilities.
+*/
+
 use paris::Logger;
 
 pub use proc_macros::{confirm, error, info, loading, log, success, warn};
