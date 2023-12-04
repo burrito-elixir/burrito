@@ -4,12 +4,6 @@ use nom::combinator::map;
 use nom::sequence::tuple;
 use nom::IResult;
 
-pub fn parse_digits(input: &str) -> IResult<&str, String> {
-    map(take_while1(|c: char| c.is_numeric()), |s: &str| {
-        s.to_string()
-    })(input)
-}
-
 pub fn is_hex_char(input: char) -> bool {
     u8::try_from(input).map(is_hex_digit).unwrap_or(false)
 }

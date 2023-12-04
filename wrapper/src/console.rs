@@ -5,16 +5,7 @@ use std::{
 
 use paris::Logger;
 
-pub use proc_macros::{confirm, error, info, log, success, warn};
-
-// macro_rules! convert {
-//     (~$value:expr) => {
-//         format!("{:?}", $value)
-//     };
-//     ($value:expr) => {
-//         ($value).to_string()
-//     };
-// }
+pub use proc_macros::{confirm, error, info, loading, log, success, warn};
 
 pub trait IO {
     fn read_line(&mut self) -> String
@@ -34,6 +25,22 @@ pub trait IO {
         Self: Sized;
 
     fn log<A: Display>(&mut self, str: A) -> &mut Self
+    where
+        Self: Sized;
+
+    fn warn<A: Display>(&mut self, str: A) -> &mut Self
+    where
+        Self: Sized;
+
+    fn error<A: Display>(&mut self, str: A) -> &mut Self
+    where
+        Self: Sized;
+
+    fn success<A: Display>(&mut self, str: A) -> &mut Self
+    where
+        Self: Sized;
+
+    fn info<A: Display>(&mut self, str: A) -> &mut Self
     where
         Self: Sized;
 
@@ -81,6 +88,22 @@ impl IO for NoIO {
     }
 
     fn log<A: Display>(&mut self, _: A) -> &mut Self {
+        self
+    }
+
+    fn warn<A: Display>(&mut self, _: A) -> &mut Self {
+        self
+    }
+
+    fn error<A: Display>(&mut self, _: A) -> &mut Self {
+        self
+    }
+
+    fn success<A: Display>(&mut self, _: A) -> &mut Self {
+        self
+    }
+
+    fn info<A: Display>(&mut self, _: A) -> &mut Self {
         self
     }
 
@@ -151,6 +174,26 @@ impl IO for StandardIO<'_> {
         self
     }
 
+    fn error<A: Display>(&mut self, message: A) -> &mut Self {
+        self.output.error(message);
+        self
+    }
+
+    fn warn<A: Display>(&mut self, message: A) -> &mut Self {
+        self.output.warn(message);
+        self
+    }
+
+    fn success<A: Display>(&mut self, message: A) -> &mut Self {
+        self.output.success(message);
+        self
+    }
+
+    fn info<A: Display>(&mut self, message: A) -> &mut Self {
+        self.output.info(message);
+        self
+    }
+
     fn indent(&mut self, amount: usize) -> &mut Self {
         self.output.indent(amount);
         self
@@ -167,13 +210,14 @@ impl IO for StandardIO<'_> {
         }
 
         match name {
-            "clear_all" => "".to_string(),
-            "clear_bg" => "".to_string(),
-            "clear_fg" => "".to_string(),
+            "clear_all" => "\x1b[m".to_string(),
+            "clear_bg" => "\x1b[49m".to_string(),
+            "clear_fg" => "\x1b[39m".to_string(),
 
-            "custom_destructive" => "".to_string(),
-            "custom_variable" => "".to_string(),
-            "custom_path" => "".to_string(),
+            "custom_destructive" => "\x1b[0;31m".to_string(),
+            "custom_variable" => "\x1b[1;34m".to_string(),
+            "custom_path" => "\x1b[0;36m".to_string(),
+            "custom_choice" => "\x1b[0;33m".to_string(),
             _ => "".to_string(),
         }
     }

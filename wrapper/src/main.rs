@@ -43,22 +43,12 @@ fn main() {
         ..StandardIO::DEFAULT
     });
 
-    let result = maintenance::uninstall(&mut io);
-
-    match result {
-        Err(err) => {
-            error!(io, "{}", err);
-            ()
-        }
-        Ok(()) => (),
-    }
-
     let _ = exec(&mut io).map_err(|err| {
         error!(io, "{}", err);
         exit(1);
     });
 
-    // exit(0)
+    exit(0)
 }
 
 fn exec<I: IO>(io: &mut I) -> Result<(), WrapperError> {
@@ -67,7 +57,7 @@ fn exec<I: IO>(io: &mut I) -> Result<(), WrapperError> {
     if_debug! {
         log!(io, "<variable>IS_PROD={}</>", IS_PROD);
         log!(io, "<variable>RELEASE_NAME={}</>", release::RELEASE_NAME);
-        log!(io, "<variable>ARGS={:?}</>", args);
+        log!(io, "<variable>ARGS={args:?}</>");
         log!(
             io,
             "<variable>METADATA_STRING={}</>",
