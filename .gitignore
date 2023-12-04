@@ -59,3 +59,6 @@ target/
 Cargo.lock
 **/*.rs.bk
 *.pdb
+
+### Direnv ###
+.envrc
