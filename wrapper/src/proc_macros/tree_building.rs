@@ -28,18 +28,3 @@ pub fn group(tree: Vec<TokenTree>) -> TokenTree {
     let group = Group::new(Delimiter::None, TokenStream::from_iter(tree));
     TokenTree::Group(group)
 }
-
-pub fn is_comma(tree: &TokenTree) -> bool {
-    matches!(tree, TokenTree::Punct(p) if p.as_char() == ',')
-}
-
-pub fn is_equal_sign(tree: &TokenTree) -> bool {
-    matches!(tree, TokenTree::Punct(p) if p.as_char() == '=')
-}
-
-pub fn get_identifier(tree: &TokenTree) -> Option<String> {
-    match tree {
-        TokenTree::Ident(i) => Some(i.to_string()),
-        _ => None,
-    }
-}

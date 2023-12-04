@@ -1,14 +1,10 @@
 mod format_literal_parser;
 mod tree_building;
 
-use std::collections::HashSet;
-
-use proc_macro::{Span, TokenStream, TokenTree};
+use proc_macro::{TokenStream, TokenTree};
 
 use format_literal_parser::{parse_format_literal, FormatLiteralParserError};
-use tree_building::{
-    closure, get_identifier, group, ident, is_comma, is_equal_sign, parens, punct, string_literal,
-};
+use tree_building::{closure, group, ident, parens, punct, string_literal};
 
 /* Formats strings with style tags, using the styles provided by
    structs implementing the trait IO.
@@ -22,37 +18,41 @@ use tree_building::{
 */
 #[proc_macro]
 pub fn log(r: TokenStream) -> TokenStream {
-    process_stream(r).unwrap()
+    process_stream(r, "log").unwrap()
 }
 
 #[proc_macro]
 pub fn success(r: TokenStream) -> TokenStream {
-    process_stream(r).unwrap()
+    process_stream(r, "success").unwrap()
 }
 
 #[proc_macro]
 pub fn warn(r: TokenStream) -> TokenStream {
-    process_stream(r).unwrap()
+    process_stream(r, "warn").unwrap()
 }
 
 #[proc_macro]
 pub fn info(r: TokenStream) -> TokenStream {
-    process_stream(r).unwrap()
+    process_stream(r, "info").unwrap()
 }
 
 #[proc_macro]
 pub fn error(r: TokenStream) -> TokenStream {
-    process_stream(r).unwrap()
+    process_stream(r, "error").unwrap()
 }
 
 #[proc_macro]
 pub fn confirm(r: TokenStream) -> TokenStream {
-    process_stream(r).unwrap()
+    process_stream(r, "confirm").unwrap()
 }
 
-fn process_stream(ts: TokenStream) -> Result<TokenStream, FormatLiteralParserError> {
+#[proc_macro]
+pub fn loading(r: TokenStream) -> TokenStream {
+    process_stream(r, "loading").unwrap()
+}
+
+fn process_stream(ts: TokenStream, command: &str) -> Result<TokenStream, FormatLiteralParserError> {
     let mut items = ts.into_iter();
-    let mut closure_items = vec![];
 
     let mut io_segment: Vec<TokenTree> = Vec::new();
     while let Some(ref item) = items.next() {
@@ -78,27 +78,15 @@ fn process_stream(ts: TokenStream) -> Result<TokenStream, FormatLiteralParserErr
     let mut format_call_args = Vec::new();
     format_call_args.push(updated_literal);
 
-    let items_copy = items.clone().collect::<Vec<TokenTree>>();
-    let mut item_windows = items_copy.as_slice().windows(3);
-    let mut existing_definitions: HashSet<String> = HashSet::new();
-
     while let Some(tree) = items.next() {
         format_call_args.push(tree.clone());
     }
 
-    while let Some(l) = item_windows.next() {
-        if let [a, b, c] = l {
-            if is_comma(a) && is_equal_sign(c) {
-                if let Some(i) = get_identifier(b) {
-                    existing_definitions.insert(i);
-                }
-            }
-        }
-    }
-
     let io = group(io_segment);
 
-    // Bind macro arguments to a shared variable, utilizing the io argument
+    // The output of this macro is wrapped within a closure, the contents are built up
+    // from the style tag references and the final formatting call
+    let mut closure_items = vec![];
     for style_tag in format_literal.style_tags() {
         format_call_args.push(group(vec![
             punct(','),
@@ -119,22 +107,10 @@ fn process_stream(ts: TokenStream) -> Result<TokenStream, FormatLiteralParserErr
         ]));
     }
 
-    // for variable in format_literal.variables().difference(&existing_definitions) {
-    //     let mut call_site_variable = ident(variable.as_str());
-    //     call_site_variable.set_span(call_site_variable.span().resolved_at(Span::call_site()));
-
-    //     format_call_args.push(group(vec![
-    //         punct(','),
-    //         ident(variable.as_str()),
-    //         punct('='),
-    //         call_site_variable,
-    //     ]))
-    // }
-
     closure_items.push(group(vec![
         io.clone(),
         punct('.'),
-        ident("log"),
+        ident(command),
         parens(vec![ident("format"), punct('!'), parens(format_call_args)]),
     ]));
 

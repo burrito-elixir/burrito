@@ -1,7 +1,5 @@
 pub mod primitive_parsers;
-mod template_parser;
 
-use std::collections::HashSet;
 use std::fmt;
 
 use nom::branch::alt;
@@ -13,7 +11,6 @@ use nom::sequence::{delimited, preceded, terminated};
 use nom::IResult;
 
 use primitive_parsers::{is_hex_char, parse_snake_case_label};
-use template_parser::{parse_template, parse_template_escape, Format, VarCollector};
 
 use thiserror::Error;
 
@@ -64,17 +61,7 @@ impl fmt::Display for StyleTag {
 enum FormatLiteralSegment {
     EscapeSegment(String),
     StyleSegment(StyleTag),
-    TemplateSegment(Format),
     TextSegment(String),
-}
-
-impl VarCollector for FormatLiteralSegment {
-    fn collect_variables(&self) -> HashSet<String> {
-        match self {
-            FormatLiteralSegment::TemplateSegment(format) => format.collect_variables(),
-            _ => HashSet::new(),
-        }
-    }
 }
 
 impl fmt::Display for FormatLiteralSegment {
@@ -83,7 +70,6 @@ impl fmt::Display for FormatLiteralSegment {
             FormatLiteralSegment::EscapeSegment(s) => write!(f, "{s}"),
             FormatLiteralSegment::StyleSegment(t) => write!(f, "{{{t}}}"),
             FormatLiteralSegment::TextSegment(s) => write!(f, "{s}"),
-            FormatLiteralSegment::TemplateSegment(t) => write!(f, "{t}"),
         }
     }
 }
@@ -100,20 +86,6 @@ impl FormatLiteral {
                 FormatLiteralSegment::StyleSegment(t) => Some(t),
                 _ => None,
             })
-            .collect()
-    }
-
-    pub fn variables(&self) -> HashSet<String> {
-        self.collect_variables()
-    }
-}
-
-impl VarCollector for FormatLiteral {
-    fn collect_variables(&self) -> HashSet<String> {
-        self.0
-            .clone()
-            .into_iter()
-            .flat_map(|segment| segment.collect_variables())
             .collect()
     }
 }
@@ -203,27 +175,15 @@ fn parse_backslash_escape_segment(input: &str) -> IResult<&str, FormatLiteralSeg
 }
 
 fn parse_misc_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
-    map(is_not("\\<\"{"), |s: &str| {
+    map(is_not("\\<\""), |s: &str| {
         FormatLiteralSegment::TextSegment(s.to_string())
     })(input)
-}
-
-fn parse_template_escape_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
-    map(parse_template_escape, |s: String| {
-        FormatLiteralSegment::TextSegment(s)
-    })(input)
-}
-
-fn parse_template_segment(input: &str) -> IResult<&str, FormatLiteralSegment> {
-    map(parse_template, |f| FormatLiteralSegment::TemplateSegment(f))(input)
 }
 
 pub fn parse_format_literal(input: &str) -> Result<FormatLiteral, FormatLiteralParserError> {
     let parse_inner_content = many0(alt((
         parse_color_tag_segment,
         parse_backslash_escape_segment,
-        parse_template_escape_segment,
-        parse_template_segment,
         parse_misc_segment,
     )));
 

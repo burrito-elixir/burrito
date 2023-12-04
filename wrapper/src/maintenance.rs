@@ -23,15 +23,13 @@ pub fn uninstall<I: IO>(io: &mut I) -> Result<(), ReleaseError> {
         "This will uninstall the application runtime for this Burrito binary!"
     );
 
-    warn!(io, "Second thingy!");
-
-    // if confirm!(
-    //     io,
-    //     "Delete runtime at <path>`{}`</>?",
-    //     install_dir.display()
-    // ) {
-    //     info!(io, "<destructive>Deleting `{}`</>", install_dir.display());
-    // }
+    if confirm!(
+        io,
+        "Delete runtime at <path>`{}`</>?",
+        install_dir.display()
+    ) {
+        info!(io, "<destructive>Deleting `{}`</>", install_dir.display());
+    }
 
     Ok(())
 }
