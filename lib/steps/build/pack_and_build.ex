@@ -33,7 +33,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
         {"__BURRITO_PLUGIN_PATH", plugin_path}
       ] ++ context.extra_build_env
 
-    Log.info(:step, "Zig build env: #{inspect(build_env)}")
+    Log.info(:step, "Rust build env: #{inspect(build_env)}")
 
     System.cmd("cargo", ["clean"], cd: Path.join(context.self_dir, "/wrapper"))
 
