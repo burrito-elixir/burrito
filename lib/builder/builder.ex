@@ -42,7 +42,7 @@ defmodule Burrito.Builder do
   """
 
   @phases [
-    fetch: [Fetch.Init, Fetch.ResolveERTS],
+    fetch: [Fetch.Init, Fetch.FetchMusl, Fetch.ResolveERTS],
     patch: [Patch.CopyERTS, Patch.RecompileNIFs],
     build: [Build.PackAndBuild, Build.CopyRelease]
   ]
@@ -102,6 +102,7 @@ defmodule Burrito.Builder do
         mix_release: release,
         work_dir: "",
         self_dir: self_path,
+        extra_build_env: [],
         halted: false
       }
 

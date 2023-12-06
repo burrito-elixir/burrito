@@ -19,36 +19,23 @@ defmodule Burrito.Builder.Target do
   end
 
   def init_target(target_alias, definition) do
-    # pop off required options
-    # then libc, and then custom erts definitions
+    # pop off required options, then erts definitions
     {fields, qualifiers} = Keyword.split(definition, [:os, :cpu, :debug?])
-    {libc, qualifiers} = Keyword.pop(qualifiers, :libc)
     {custom_erts, qualifiers} = Keyword.pop(qualifiers, :custom_erts)
 
     if !fields[:os] || !fields[:cpu] do
       raise "You must define your target with AT LEAST `:os`, `:cpu` defined!"
     end
 
-    # If linux, and no libc defined, default to the host system one
-    libc =
-      if fields[:os] == :linux do
-        if libc == nil do
-          # if we are not on a host that has a libc, default to glibc (gnu)
-          Util.get_libc_type() || :gnu
-        else
-          libc
-        end
-      end
-
     erts_source = translate_erts_source(custom_erts)
 
     fields =
       fields
       |> Keyword.put(:alias, target_alias)
-      |> Keyword.put(:qualifiers, [libc: libc] ++ qualifiers)
       |> Keyword.put(:erts_source, erts_source)
       |> Keyword.put(:debug?, fields[:debug?] || false)
-      |> Keyword.put(:cross_build, is_cross_build?(fields, libc))
+      |> Keyword.put(:qualifiers, qualifiers)
+      |> Keyword.put(:cross_build, is_cross_build?(fields))
 
     struct!(__MODULE__, fields)
   end
@@ -82,9 +69,8 @@ defmodule Burrito.Builder.Target do
     end
   end
 
-  defp is_cross_build?(fields, libc) do
-    fields[:os] != Util.get_current_os() || fields[:cpu] != Util.get_current_cpu() ||
-      libc != Util.get_libc_type()
+  defp is_cross_build?(fields) do
+    fields[:os] != Util.get_current_os() || fields[:cpu] != Util.get_current_cpu()
   end
 
   @spec make_triplet(Burrito.Builder.Target.t()) :: String.t()
@@ -98,15 +84,10 @@ defmodule Burrito.Builder.Target do
 
     triplet = "#{target.cpu}-#{os}"
 
-    if target.qualifiers[:libc] do
-      libc = translate_libc_to_zig(target.qualifiers[:libc])
-      "#{triplet}-#{libc}"
+    if target.qualifiers[:os] == :linux do
+      "#{triplet}-musl"
     else
       triplet
     end
   end
-
-  defp translate_libc_to_zig(:gnu), do: "gnu"
-  defp translate_libc_to_zig(:musl), do: "musl"
-  defp translate_libc_to_zig(abi), do: Atom.to_string(abi)
 end

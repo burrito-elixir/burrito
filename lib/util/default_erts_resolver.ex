@@ -5,7 +5,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
   alias Burrito.Util
   alias Burrito.Util.FileCache
   alias Burrito.Util.ERTSResolver
-  alias Burrito.Util.ERTSBeamMachineFetcher
+  alias Burrito.Util.ERTSUniversalMachineFetcher
 
   @behaviour ERTSResolver
 
@@ -17,7 +17,7 @@ defmodule Burrito.Util.DefaultERTSResolver do
 
   def do_resolve(%Target{erts_source: {:precompiled, version: otp_version}} = target)
       when is_binary(otp_version) do
-    case ERTSBeamMachineFetcher.fetch_version(
+    case ERTSUniversalMachineFetcher.fetch_version(
            target.os,
            target.qualifiers[:libc],
            target.cpu,
