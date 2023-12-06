@@ -25,12 +25,13 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     # File system to suddenly "wake up" to all the files inside it.
     Path.join(context.work_dir, ["/lib", "/.burrito"]) |> File.touch!()
 
-    build_env = [
-      {"__BURRITO_IS_PROD", is_prod(context.target)},
-      {"__BURRITO_RELEASE_PATH", context.work_dir},
-      {"__BURRITO_RELEASE_NAME", release_name},
-      {"__BURRITO_PLUGIN_PATH", plugin_path}
-    ] ++ context.extra_build_env
+    build_env =
+      [
+        {"__BURRITO_IS_PROD", is_prod(context.target)},
+        {"__BURRITO_RELEASE_PATH", context.work_dir},
+        {"__BURRITO_RELEASE_NAME", release_name},
+        {"__BURRITO_PLUGIN_PATH", plugin_path}
+      ] ++ context.extra_build_env
 
     Log.info(:step, "Zig build env: #{inspect(build_env)}")
 

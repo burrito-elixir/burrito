@@ -13,17 +13,21 @@ defmodule Burrito.Util.ERTSBeamMachineFetcher do
       when is_binary(otp_version) and is_atom(os) and is_atom(cpu) and is_atom(libc) do
     {:ok, _} = Application.ensure_all_started(:req)
 
-    final_url = case os do
-      :darwin ->
-        @mac_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money
-      :linux ->
-        @linux_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money
-      :windows -> @windows_url
-    end
-    |> String.replace("{OTP_VERSION}", otp_version)
-    |> String.replace("{ARCH}", Atom.to_string(cpu))
-    |> String.replace("{LIBC}", Atom.to_string(libc))
-    |> String.replace("{OPENSSL_VERSION}", @beam_machine_openssl_version)
+    final_url =
+      case os do
+        :darwin ->
+          @mac_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money
+
+        :linux ->
+          @linux_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money
+
+        :windows ->
+          @windows_url
+      end
+      |> String.replace("{OTP_VERSION}", otp_version)
+      |> String.replace("{ARCH}", Atom.to_string(cpu))
+      |> String.replace("{LIBC}", Atom.to_string(libc))
+      |> String.replace("{OPENSSL_VERSION}", @beam_machine_openssl_version)
 
     Log.success(:step, "Remote ERTS From Beam Machine: #{final_url}")
 

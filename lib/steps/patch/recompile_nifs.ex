@@ -65,11 +65,12 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
 
     # Compose env variables for cross-compilation, if we're building for linux, force dynamic linking
-    erts_env = if String.contains?(cross_target, "linux") do
-      erts_make_env(erts_path) ++ [{"LDFLAGS", "-dynamic-linker /dev/null"}]
-    else
-      erts_make_env(erts_path)
-    end
+    erts_env =
+      if String.contains?(cross_target, "linux") do
+        erts_make_env(erts_path) ++ [{"LDFLAGS", "-dynamic-linker /dev/null"}]
+      else
+        erts_make_env(erts_path)
+      end
 
     # This currently is only designed for elixir_make NIFs
     build_result =
@@ -81,8 +82,10 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
             {"MIX_APP_PATH", output_priv_dir},
             {"RANLIB", "zig ranlib"},
             {"AR", "zig ar"},
-            {"CC", "zig cc -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup"},
-            {"CXX", "zig c++ -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup"}
+            {"CC",
+             "zig cc -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup"},
+            {"CXX",
+             "zig c++ -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup"}
           ] ++ erts_env,
         into: IO.stream()
       )
@@ -98,6 +101,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
         Enum.each(src_priv_files, fn file ->
           file_name = Path.basename(file)
+
           if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
             new_file_name = String.replace_trailing(file_name, ".so", ".dll")
             dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
