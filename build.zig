@@ -54,6 +54,7 @@ pub fn build_wrapper() !void {
     const release_name = try std.process.getEnvVarOwned(allocator, "__BURRITO_RELEASE_NAME");
     const plugin_path = std.process.getEnvVarOwned(allocator, "__BURRITO_PLUGIN_PATH") catch null;
     const is_prod = std.process.getEnvVarOwned(allocator, "__BURRITO_IS_PROD") catch "1";
+    const musl_runtime_path = std.process.getEnvVarOwned(allocator, "__BURRITO_MUSL_RUNTIME_PATH") catch "";
     var opt_level = std.builtin.Mode.Debug;
 
     if (std.mem.eql(u8, is_prod, "1")) {
@@ -80,6 +81,7 @@ pub fn build_wrapper() !void {
     exe_options.addOption(u64, "UNCOMPRESSED_SIZE", uncompressed_size);
 
     exe_options.addOption(bool, "IS_PROD", std.mem.eql(u8, is_prod, "1"));
+    exe_options.addOption([]const u8, "MUSL_RUNTIME_PATH", musl_runtime_path);
 
     if (target.isWindows()) {
         wrapper_exe.addIncludePath(.{ .path = "src/" });
