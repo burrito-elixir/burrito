@@ -42,6 +42,10 @@ We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakewar
   * We use this to perform automatic updates and licensing checks (see `lib/versions/release_file.ex` for details)
 * Automatically uninstalls old versions of the payload if a new version is run.
 
+#### Supported Versions:
+We provide pre-compiled Erlang/OTP distributions starting from `OTP-25.3` onwards for MacOS, Linux, and Windows targets.
+If you require an older version, please refer to the section about [providing custom Erlang/OTP builds](#using-custom-erts-builds).
+
 #### Technical Component Overview
 Burrito is composed of a few different components:
 * **Mix Release Module** - A module that is executed as a Mix release step. This module takes care of packing up the files, downloading and copying in different ERTS runtimes, and launching the Zig Archiver and Wrapper.
@@ -91,15 +95,13 @@ That being said, we're excited by our early use of the tooling, and are eager to
 
 |Target| Host | Host | Host | Host |
 |--|--|--|--|--|
-| | Windows x64 | Linux | MacOS (x86_64) | MacOS (Apple Silicon)** |
-| Windows x64 |❌|✅|✅|❌|
-| Linux |❌|✅|✅|❌|
-| MacOS (x86_64) |❌|⚠️*|✅|❌|
-| MacOS (Apple Silicon)** |❌|⚠️*|✅|✅|
+| | Windows x64 | Linux | MacOS (x86_64) | MacOS (Apple Silicon) |
+| Windows x64 |❌|✅|✅|✅|
+| Linux |❌|✅|✅|✅|
+| MacOS (x86_64) |❌|✅|✅|✅|
+| MacOS (Apple Silicon) |❌|✅|✅|✅|
 
-\* NIFs implemented using `elixir-make` cannot be cross-compiled from Linux to MacOS, pending a [proposed linker change in Zig](https://github.com/ziglang/zig/issues/8180)
-
-** Automated testing and building of Apple silicon Erlang builds is blocked on [support for Apple Silicon in Github Actions](https://github.com/actions/virtual-environments/issues/2187).
+We support _targeting_ Windows (x86_64) from MacOS and Linux, we _do not_ officially support building ON Windows, it's recommended you use WSL if your development machine is Windows.
 
 ----
 
@@ -284,19 +286,7 @@ targets: [
 ]
 ```
 
-Build targets can be further customized using build qualifiers. For example, a Linux build target can be configured to use `musl` instead of `gnu` using the following definition:
-
-```elixir
-targets: [
-  linux_musl: [
-    os: :linux,
-    cpu: :x86_64,
-    libc: :musl
-  ]
-]
-```
-
-Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently, only the `libc` and `custom_erts` qualifiers have any affect on the standard Burrito build phases and steps.
+Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently `custom_erts` has any affect on the standard Burrito build phases and steps.
 
 Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
 
@@ -306,8 +296,9 @@ The Burrito project provides precompiled builds of Erlang for the following plat
 
 ```elixir
 [os: :darwin, cpu: :x86_64],
-[os: :linux, cpu: :x86_64, libc: :gnu], # or just [os: :linux, cpu: :x86_64]
-[os: :linux, cpu: :x86_64, libc: :musl],
+[os: :darwin, cpu: :aarch64],
+[os: :linux, cpu: :x86_64],
+[os: :linux, cpu: :aarch64],
 [os: :windows, cpu: :x86_64]
 ```
 
@@ -371,10 +362,9 @@ Minimizing the runtime dependencies of the package binaries is an explicit desig
 * MSVC Runtime for the Erlang version you are shipping
 * Windows 10 Build 1511 or later (for ANSI color support)
 ##### Linux
-* Any distribution with glibc (gnu) (or musl libc)
-* libncurses-5
+* No runtime dependencies.
 ##### MacOS
-* No runtime dependencies, however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes code-signing
+* No runtime dependencies. however a security exemption must be set in MacOS Gatekeeper unless the binary undergoes code-signing.
 
 ## Contributing
 #### Welcome!
