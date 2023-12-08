@@ -8,20 +8,6 @@ defmodule Burrito.Util do
     end
   end
 
-  @spec get_libc_type :: :gnu | :musl | nil
-  def get_libc_type do
-    if get_current_os() != :linux do
-      nil
-    else
-      {result, _} = System.cmd("ldd", ["--version"])
-
-      cond do
-        String.contains?(result, "musl") -> :musl
-        true -> :gnu
-      end
-    end
-  end
-
   def get_current_cpu do
     arch_string =
       :erlang.system_info(:system_architecture)

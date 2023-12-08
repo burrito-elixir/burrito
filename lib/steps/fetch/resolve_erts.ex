@@ -7,17 +7,13 @@ defmodule Burrito.Steps.Fetch.ResolveERTS do
 
   @behaviour Step
 
-  # A list of the pre compiled ERTS builds we provide
-  # using the `erlang-builder` repo
+  # A list of the pre-compiled ERTS builds we provide
   @pre_compiled_supported_tuples [
-    # {os, cpu, libc (linux only)}
-    {:windows, :x86_64, nil},
-    {:darwin, :x86_64, nil},
-    {:darwin, :aarch64, nil},
-    {:linux, :x86_64, :gnu},
-    {:linux, :x86_64, :musl},
-    {:linux, :aarch64, :gnu},
-    {:linux, :aarch64, :musl},
+    {:windows, :x86_64},
+    {:darwin, :x86_64},
+    {:darwin, :aarch64},
+    {:linux, :x86_64},
+    {:linux, :aarch64}
   ]
 
   @impl Step
@@ -45,8 +41,7 @@ defmodule Burrito.Steps.Fetch.ResolveERTS do
   end
 
   defp pass_precompile_check?(%Target{erts_source: {:precompiled, _}} = target) do
-    libc = Keyword.get(target.qualifiers, :libc)
-    {target.os, target.cpu, libc} in @pre_compiled_supported_tuples
+    {target.os, target.cpu} in @pre_compiled_supported_tuples
   end
 
   defp pass_precompile_check?(_) do

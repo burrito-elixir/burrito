@@ -25,12 +25,13 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     # File system to suddenly "wake up" to all the files inside it.
     Path.join(context.work_dir, ["/lib", "/.burrito"]) |> File.touch!()
 
-    build_env = [
-      {"__BURRITO_IS_PROD", is_prod(context.target)},
-      {"__BURRITO_RELEASE_PATH", context.work_dir},
-      {"__BURRITO_RELEASE_NAME", release_name},
-      {"__BURRITO_PLUGIN_PATH", plugin_path}
-    ]
+    build_env =
+      [
+        {"__BURRITO_IS_PROD", is_prod(context.target)},
+        {"__BURRITO_RELEASE_PATH", context.work_dir},
+        {"__BURRITO_RELEASE_NAME", release_name},
+        {"__BURRITO_PLUGIN_PATH", plugin_path}
+      ] ++ context.extra_build_env
 
     Log.info(:step, "Zig build env: #{inspect(build_env)}")
 
@@ -99,12 +100,14 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     out = Path.join(self_path, "zig-out")
     payload = Path.join(self_path, "payload.foilz")
     compressed_payload = Path.join(self_path, ["src/", "payload.foilz.xz"])
+    musl_runtime = Path.join(self_path, ["src/", "musl-runtime.so"])
     metadata = Path.join(self_path, ["src/", "_metadata.json"])
 
     File.rmdir(cache)
     File.rmdir(out)
     File.rm(payload)
     File.rm(compressed_payload)
+    File.rm(musl_runtime)
     File.rm(metadata)
 
     :ok

@@ -21,7 +21,7 @@ defmodule OnlyOne.MixProject do
             macos: [os: :darwin, cpu: :x86_64],
             macos_m1: [os: :darwin, cpu: :aarch64],
             linux: [os: :linux, cpu: :x86_64],
-            linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
+            linux_aarch64: [os: :linux, cpu: :aarch64],
             # windows: [os: :windows, cpu: :x86_64] Windows not supported on this one, sorry :(
           ],
           debug: Mix.env() != :prod,

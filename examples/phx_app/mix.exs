@@ -60,10 +60,8 @@ defmodule PhxApp.MixProject do
           targets: [
             macos: [os: :darwin, cpu: :x86_64],
             macos_m1: [os: :darwin, cpu: :aarch64],
-            linux_gnu: [os: :linux, cpu: :x86_64, libc: :gnu],
-            linux_musl: [os: :linux, cpu: :x86_64, libc: :musl],
-            linux_gnu_aarch64: [os: :linux, cpu: :aarch64, libc: :gnu],
-            linux_musl_aarch64: [os: :linux, cpu: :aarch64, libc: :musl],
+            linux: [os: :linux, cpu: :x86_64],
+            linux_aarch64: [os: :linux, cpu: :aarch64],
             windows: [os: :windows, cpu: :x86_64]
           ],
           debug: Mix.env() != :prod

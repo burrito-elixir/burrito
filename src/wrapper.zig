@@ -29,6 +29,8 @@ const plugin = @import("burrito_plugin");
 const metadata = @import("metadata.zig");
 const MetaStruct = metadata.MetaStruct;
 
+const IS_LINUX = builtin.os.tag == .linux;
+
 // Payload
 pub const FOILZ_PAYLOAD = @embedFile("payload.foilz.xz");
 pub const RELEASE_METADATA_JSON = @embedFile("_metadata.json");
@@ -66,6 +68,9 @@ pub fn main() anyerror!void {
         // POSIX arguments
         args = try std.process.argsAlloc(allocator);
     }
+
+    // If on linux, maybe install the musl libc runtime file for our pre-compiled Erlang
+    try maybe_install_musl_runtime();
 
     // Trim args to only what we actually want to pass to erlang
     const args_trimmed = args.?[1..];
@@ -209,4 +214,22 @@ fn install_dir_error() void {
     logger.err("On Linux or MacOS you can run the command: `export {s}=/some/other/path`", .{env_install_dir_name});
     logger.err("On Windows you can use: `SET {s}=D:\\some\\other\\path`", .{env_install_dir_name});
     std.process.exit(1);
+}
+
+fn maybe_install_musl_runtime() anyerror!void {
+    if (comptime IS_LINUX and !std.mem.eql(u8, build_options.MUSL_RUNTIME_PATH, "")) {
+        const file = try std.fs.createFileAbsolute(
+            build_options.MUSL_RUNTIME_PATH,
+            .{ .read = true },
+        );
+        defer file.close();
+
+        const exec_permissions = std.fs.File.PermissionsUnix.unixNew(0o754);
+        try file.setPermissions(.{ .inner = exec_permissions });
+
+        const MUSL_RUNTIME_BYTES = @embedFile("musl-runtime.so");
+        try file.writeAll(MUSL_RUNTIME_BYTES);
+
+        log.debug("Wrote musl runtime file: {s}", .{build_options.MUSL_RUNTIME_PATH});
+    }
 }
