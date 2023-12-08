@@ -28,7 +28,6 @@ defmodule Burrito.MixProject do
     [
       maintainers: ["Digit"],
       name: :burrito,
-      organization: :burrito,
       licenses: ["MIT"],
       links: %{
         "Github" => "https://github.com/burrito-elixir/burrito",
