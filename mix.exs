@@ -29,7 +29,7 @@ defmodule Burrito.MixProject do
       maintainers: ["Digit"],
       name: :burrito,
       licenses: ["MIT"],
-      files: ~w(lib LICENSE mix.exs README.md .formatter.exs src bin _dummy_plugin.zig build.zig),
+      files: ~w(lib LICENSE VERSION mix.exs README.md .formatter.exs src bin _dummy_plugin.zig build.zig),
       links: %{
         "Github" => "https://github.com/burrito-elixir/burrito",
         "Sponsor" => "https://github.com/sponsors/doawoo"
