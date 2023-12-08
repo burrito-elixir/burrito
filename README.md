@@ -1,4 +1,7 @@
 # Burrito 🌯
+
+[![Hex version badge](https://img.shields.io/hexpm/v/burrito.svg)](https://hex.pm/packages/burrito)
+
 ## Cross-Platform Elixir Deployments
 
 * [What Is It?](#what-is-it)
@@ -119,7 +122,7 @@ You must have the following installed and in your PATH:
 
     ```elixir
     defp deps do
-      [{:burrito, github: "burrito-elixir/burrito"}]
+      [{:burrito, "~> 1.0"}]
     end
     ```
 

@@ -7,11 +7,11 @@ defmodule Burrito.MixProject do
       description:
         "Burrito is our answer to the problem of distributing Elixir applications across varied environments. Turn your Elixir application into a simple, self-contained, single-file executable for MacOS, Linux, and Windows.",
       version: String.trim(File.read!("VERSION")),
-      elixir: "~> 1.12",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: [
-        main: "README",
+        main: "readme",
         extras: ["README.md"]
       ],
       package: package()
@@ -29,6 +29,7 @@ defmodule Burrito.MixProject do
       maintainers: ["Digit"],
       name: :burrito,
       licenses: ["MIT"],
+      files: ~w(lib LICENSE mix.exs README.md .formatter.exs src bin _dummy_plugin.zig build.zig),
       links: %{
         "Github" => "https://github.com/burrito-elixir/burrito",
         "Sponsor" => "https://github.com/sponsors/doawoo"
