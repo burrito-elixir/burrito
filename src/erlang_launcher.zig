@@ -103,6 +103,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         try erl_env_map.put("BINDIR", erts_bin_path[0..]);
         try erl_env_map.put("RELEASE_ROOT", install_dir);
         try erl_env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
+        try erl_env_map.put("__BURRITO", "1");
 
         return std.process.execve(allocator, final_args, &erl_env_map);
     }

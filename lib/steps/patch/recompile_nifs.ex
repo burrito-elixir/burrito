@@ -95,7 +95,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
              "zig cc -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup #{extra_cflags}"},
             {"CXX",
              "zig c++ -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup #{extra_cxxflags}"}
-          ] ++ erts_env ++ extra_env |> IO.inspect(),
+          ] ++ erts_env ++ extra_env,
         into: IO.stream()
       )
 
