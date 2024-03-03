@@ -281,15 +281,22 @@ The three phases of the Burrito build pipeline are:
 
 A Burrito build target is a keyword list that contains an operating system, a CPU architecture, and extra build options (called Qualifiers).
 
-Here's a definition for a build target configured for Linux x86-64:
+Here's a definition for a build target configured for Linux x86-64 that adds extra `CFLAGS` to the NIF recompile step:
 
 ```elixir
 targets: [
-  linux: [os: :linux, cpu: :x86_64]
+  linux: [os: :linux, cpu: :x86_64, nif_cflags: "-DSOME_DEFINE"]
 ]
 ```
 
-Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Currently `custom_erts` has any affect on the standard Burrito build phases and steps.
+Build qualifiers are a simple way to pass specific flags into the Burrito build pipeline. Here is a list of the supported qualifiers:
+
+* `custom_erts` - `binary()` or `URI.t()` that points to a custom tar.gz. See [Using custom ERTS builds](#using-custom-erts-builds) for more info.
+* `nif_cflags` - `binary()` String that is appended to the end of `CFLAGS` when recompiling NIFs for another target.
+* `nif_cxxflags` - `binary()` String that is appended to the end of `CXXFLAGS` when recompiling NIFs for another target.
+* `nif_env` - `list(tuple())` List of 2-tuples (strings) that define environment variables when recompiling NIFs for another target.
+* `nif_make_args` - `binary()` String that is appended to the `make` call when Elixir make is invoked for recompiling NIFs.
+* `skip_nifs` - `boolean()` Boolean value, defaults to `false`, if set to `true` NIFs will NOT be recompiled. Use this if you want to copy in NIFs that you recompiled yourself in combination with extra/custom build steps. 
 
 Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
 
