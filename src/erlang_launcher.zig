@@ -69,6 +69,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
 
         try env_map.put("RELEASE_ROOT", install_dir);
         try env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
+        try env_map.put("__BURRITO", "1");
 
         var win_child_proc = std.ChildProcess.init(final_args, allocator);
         win_child_proc.env_map = env_map;
