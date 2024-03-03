@@ -12,8 +12,9 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     cxxflags = Keyword.get(context.target.qualifiers, :nif_cxxflags, "")
     nif_env = Keyword.get(context.target.qualifiers, :nif_env, [])
     nif_make_args = Keyword.get(context.target.qualifiers, :nif_make_args, [])
+    skip_nifs? = Keyword.get(context.target.qualifiers, :skip_nifs, false)
 
-    if context.target.cross_build do
+    if context.target.cross_build and not skip_nifs? do
       triplet = Target.make_triplet(context.target)
 
       {:local_unpacked, path: erts_location} = context.target.erts_source
