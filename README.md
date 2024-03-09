@@ -197,7 +197,7 @@ end
 If you wish you retrieve the argv passed to your program by Burrito use this snippet:
 
 ```elixir
-args = Burrito.Util.Args.get_arguments() # this returns a list of strings
+args = Burrito.Util.Args.argv() # this returns a list of strings
 ```
 
 #### Maintenance Commands
