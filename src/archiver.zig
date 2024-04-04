@@ -195,7 +195,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
         //////
         // Create any directories needed
         const dir_name = fs.path.dirname(file_name);
-        try create_dirs(dest_path[0..], dir_name.?, allocator);
+        if (dir_name != null) try create_dirs(dest_path[0..], dir_name.?, allocator);
 
         log.debug("Unpacked File: {s}", .{full_file_path});
 
