@@ -195,7 +195,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
         //////
         // Create any directories needed
         const dir_name = fs.path.dirname(file_name);
-        try create_dirs(dest_path[0..], dir_name.?, allocator);
+        if (dir_name != null) try create_dirs(dest_path[0..], dir_name.?, allocator);
 
         log.debug("Unpacked File: {s}", .{full_file_path});
 
@@ -224,11 +224,11 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
 }
 
 fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: std.mem.Allocator) !void {
-    var iterator = mem.split(u8, sub_dir_names, "/");
+    var iterator = try fs.path.componentIterator(sub_dir_names);
     var full_dir_path = try fs.path.join(allocator, &[_][]const u8{ dest_path, "" });
 
     while (iterator.next()) |sub_dir| {
-        full_dir_path = try fs.path.join(allocator, &[_][]const u8{ full_dir_path, sub_dir });
+        full_dir_path = try fs.path.join(allocator, &[_][]const u8{ full_dir_path, sub_dir.name });
         os.mkdir(full_dir_path, 0o755) catch {};
     }
 }
