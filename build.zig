@@ -110,10 +110,4 @@ pub fn build_wrapper() !void {
     wrapper_exe.addCSourceFile(.{ .file = .{ .path = "src/xz/xz_dec_stream.c" }, .flags = &[0][]const u8{} });
 
     builder.installArtifact(wrapper_exe);
-
-    // const run_cmd = wrapper_exe.run();
-    // run_cmd.step.dependOn(builder.getInstallStep());
-
-    // const run_step = builder.step("run", "Run the app");
-    // run_step.dependOn(&run_cmd.step);
 }
