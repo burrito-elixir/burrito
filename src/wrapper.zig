@@ -218,10 +218,21 @@ fn install_dir_error() void {
 
 fn maybe_install_musl_runtime() anyerror!void {
     if (comptime IS_LINUX and !std.mem.eql(u8, build_options.MUSL_RUNTIME_PATH, "")) {
-        const file = try std.fs.createFileAbsolute(
+        const file = std.fs.createFileAbsolute(
             build_options.MUSL_RUNTIME_PATH,
             .{ .read = true },
-        );
+        ) catch |e| {
+            switch (e) {
+                error.FileBusy => {
+                    log.debug("The musl runtime file is already preset. Continuing.", .{});
+                    return;
+                },
+                else => {
+                    log.debug("Failed to extract burrito musl runtime: {}", .{e});
+                    return;
+                },
+            }
+        };
         defer file.close();
 
         const exec_permissions = std.fs.File.PermissionsUnix.unixNew(0o754);
