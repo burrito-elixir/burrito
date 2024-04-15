@@ -1,0 +1,116 @@
+name: "Burrito Cross Build Build Tests"
+on:
+  pull_request:
+  push:
+    branches: main
+jobs:
+  build_examples:
+    name: build_examples_${{ matrix.host }}
+    runs-on: ${{ matrix.host }}
+    strategy:
+        matrix:
+            host: [ubuntu-latest, macos-latest]
+    steps:
+      # Deps
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        if: matrix.host == 'ubuntu-latest'
+        with:
+          otp-version: 26.2.1
+          elixir-version: 1.16.2
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.11.0
+      - name: Set up Homebrew
+        if: matrix.host == 'macos-latest'
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - run: sudo apt-get -y install xz-utils
+        if: matrix.host == 'ubuntu-latest'
+      - run: brew install elixir xz
+        if: matrix.host == 'macos-latest'
+
+      # Restore Cache
+      - uses: actions/cache/restore@v3
+        if: matrix.host == 'ubuntu-latest'
+        id: cache-restore-linux
+        with:
+          path: /home/runner/.cache/burrito_file_cache/
+          key: burrito-download-cache_${{ matrix.host }}
+      - uses: actions/cache/restore@v3
+        if: matrix.host == 'macos-latest'
+        id: cache-restore-macos
+        with:
+          path: /Users/runner/Library/Caches/burrito_file_cache/
+          key: burrito-download-cache_${{ matrix.host }}
+
+      # Build Example CLI App
+      - name: cli_example
+        working-directory: "./examples/cli_example"
+        run: "mix deps.get && mix release"
+
+      # Save Cache (Linux)
+      - uses: actions/cache/save@v3
+        if: matrix.host == 'ubuntu-latest'
+        id: cache-save-linux
+        with:
+          path: /home/runner/.cache/burrito_file_cache/
+          key: burrito-download-cache_${{ matrix.host }}
+
+      # Save Cache (macOS)
+      - uses: actions/cache/save@v3
+        if: matrix.host == 'macos-latest'
+        id: cache-save-macos
+        with:
+          path: /Users/runner/Library/Caches/burrito_file_cache/
+          key: burrito-download-cache_${{ matrix.host }}
+
+      # Upload Wrapped Binaries
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: burrito_${{ matrix.host }}_host_bins
+          path: ./examples/**/burrito_out/*
+          retention-days: 1
+
+  #### Run example binaries ####
+  run_examples_windows:
+    strategy:
+      matrix:
+          host: [ubuntu-latest, macos-latest]
+    runs-on: windows-latest
+    needs: build_examples
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: burrito_${{ matrix.host }}_host_bins
+      - run: cli_example/burrito_out/example_cli_app_windows.exe
+
+  run_examples_linux:
+    strategy:
+      matrix:
+          host: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
+    needs: build_examples
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: burrito_${{ matrix.host }}_host_bins
+      - run: chmod +x cli_example/burrito_out/example_cli_app_linux
+      - run: cli_example/burrito_out/example_cli_app_linux
+
+  run_examples_macos:
+    strategy:
+      matrix:
+          host: [ubuntu-latest, macos-latest]
+    runs-on: macos-latest
+    needs: build_examples
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: burrito_${{ matrix.host }}_host_bins
+      - run: chmod +x cli_example/burrito_out/example_cli_app_macos
+      - run: cli_example/burrito_out/example_cli_app_macos
