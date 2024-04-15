@@ -38,4 +38,13 @@ defmodule Burrito.Util do
 
     String.trim(otp_version)
   end
+
+  @doc """
+  Checks if the application is currently running as a standalone Burrito release, or via some other mechanism,
+  such as an `escript`.
+  """
+  @spec running_standalone?() :: boolean()
+  def running_standalone?() do
+    System.get_env("__BURRITO") != nil
+  end
 end
