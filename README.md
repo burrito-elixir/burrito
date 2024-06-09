@@ -53,7 +53,7 @@ If you require an older version, please refer to the section about [providing cu
 Burrito is composed of a few different components:
 * **Mix Release Module** - A module that is executed as a Mix release step. This module takes care of packing up the files, downloading and copying in different Erlang VM Runtime files, and launching the Zig Archiver and Wrapper.
 * **Zig Archiver** - A small Zig library that packs up an entire directory into a tar-like blob. This is known as the "payload" -- which will contain all the compiled BEAM code for your release, and the ERTS for the target platform. This is Gzip compressed and then embedded directly into the wrapper program.
-* **Zig Wrapper** - This is portable cross-platform Zig code that wraps around the payload generated during the Mix release process. Erlang is launched in [Embedded Mode](https://www.erlang.org/doc/man/config.html#sys.config) directly from Zig using `execve()` (on Windows we use a child process).
+* **Zig Wrapper** - This is portable cross-platform Zig code that wraps around the payload generated during the Mix release process. Erlang is launched in [Embedded Mode](https://www.erlang.org/doc/apps/kernel/config#sys-config) (for more details see [System Principles](https://www.erlang.org/doc/system/system_principles#code-loading-strategy)) directly from Zig using `execve()` (on Windows we use a child process).
 
 ```
       Burrito Produced Binary
