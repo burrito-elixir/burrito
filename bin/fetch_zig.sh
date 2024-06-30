@@ -1,5 +1,5 @@
 #!/bin/sh
-ZIG_VERSION="0.11.0"
+ZIG_VERSION="0.13.0"
 
 ####
 

@@ -2,7 +2,7 @@ defmodule Burrito do
   alias Burrito.Builder
   alias Burrito.Builder.Log
 
-  @zig_version_expected %Version{major: 0, minor: 11, patch: 0}
+  @zig_version_expected %Version{major: 0, minor: 13, patch: 0}
 
   @spec wrap(Mix.Release.t()) :: Mix.Release.t()
   def wrap(%Mix.Release{} = release) do

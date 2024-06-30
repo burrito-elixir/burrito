@@ -6,10 +6,10 @@ pub fn burrito_plugin_entry(install_dir: []const u8, program_manifest_json: []co
     std.debug.print("Install Dir: {s}\n", .{install_dir});
     std.debug.print(": {s}\n", .{program_manifest_json});
 
-    var exists = if (std.fs.cwd().access("only_one.lock", .{ .mode = File.OpenMode.read_only })) true else |_| false;
+    const exists = if (std.fs.cwd().access("only_one.lock", .{ .mode = File.OpenMode.read_only })) true else |_| false;
 
     if (exists) {
         std.log.err("We found a lockfile! Can't run two of this application at one!\n", .{});
-        std.os.exit(1);
+        std.process.exit(0);
     }
 }
