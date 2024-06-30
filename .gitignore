@@ -32,6 +32,7 @@ Temporary Items
 
 zig-cache/
 zig-out/
+**.zig-cache/**
 build-*/
 docgen_tmp/
 
@@ -52,3 +53,4 @@ erl_crash.dump
 /config/*.secret.exs
 .elixir_ls/
 **/burrito_out/**
+
