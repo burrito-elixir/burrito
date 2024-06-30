@@ -54,7 +54,7 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
     const arch_file = try fs.cwd().openFile(archive_path, .{ .mode = .read_write });
     const foilz_writer = fs.File.writer(arch_file);
 
-    var dir = try fs.openIterableDirAbsolute(path, .{ .access_sub_paths = true });
+    var dir = try fs.openDirAbsolute(path, .{ .access_sub_paths = true, .iterate = true });
     var walker = try dir.walk(allocator);
 
     var count: u32 = 0;
@@ -80,7 +80,7 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
             // Allocate memory for the file
             var file_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
             defer file_arena.deinit();
-            var file_allocator = file_arena.allocator();
+            const file_allocator = file_arena.allocator();
 
             // Read the file
             const file_buffer = try file.readToEndAlloc(file_allocator, MAX_READ_SIZE);
@@ -113,13 +113,13 @@ pub fn write_magic_number(foilz_writer: *const fs.File.Writer) !void {
 }
 
 pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, data: []const u8, mode: usize) !void {
-    _ = try foilz_writer.writeInt(u64, name.len, .Little);
+    _ = try foilz_writer.writeInt(u64, name.len, .little);
     _ = try foilz_writer.write(name);
-    _ = try foilz_writer.writeInt(u64, data.len, .Little);
+    _ = try foilz_writer.writeInt(u64, data.len, .little);
     if (data.len > 0) {
         _ = try foilz_writer.write(data);
     }
-    _ = try foilz_writer.writeInt(usize, mode, .Little);
+    _ = try foilz_writer.writeInt(usize, mode, .little);
 }
 
 pub fn validate_magic(first_bytes: []const u8) bool {
@@ -169,23 +169,23 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
     while (cursor < decompressed.len - 5) {
         //////
         // Read the file name
-        var string_len = std.mem.readIntSliceLittle(u64, decompressed[cursor .. cursor + @sizeOf(u64)]);
+        const string_len = std.mem.readInt(u64, decompressed[cursor .. cursor + @sizeOf(u64)][0..8], .little);
         cursor = cursor + @sizeOf(u64);
 
-        var file_name = decompressed[cursor .. cursor + string_len];
+        const file_name = decompressed[cursor .. cursor + string_len];
         cursor = cursor + string_len;
 
         //////
         // Read the file data from the payload
-        var file_len = std.mem.readIntSliceLittle(u64, decompressed[cursor .. cursor + @sizeOf(u64)]);
+        const file_len = std.mem.readInt(u64, decompressed[cursor .. cursor + @sizeOf(u64)][0..8], .little);
         cursor = cursor + @sizeOf(u64);
 
-        var file_data = decompressed[cursor .. cursor + file_len];
+        const file_data = decompressed[cursor .. cursor + file_len];
         cursor = cursor + file_len;
 
         //////
         // Read the mode for this file
-        var file_mode = std.mem.readIntSliceLittle(usize, decompressed[cursor .. cursor + @sizeOf(usize)]);
+        const file_mode = std.mem.readInt(usize, decompressed[cursor .. cursor + @sizeOf(usize)][0..@sizeOf(usize)], .little);
         cursor = cursor + @sizeOf(usize);
 
         //////
@@ -229,15 +229,23 @@ fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: std.
 
     while (iterator.next()) |sub_dir| {
         full_dir_path = try fs.path.join(allocator, &[_][]const u8{ full_dir_path, sub_dir.name });
-        os.mkdir(full_dir_path, 0o755) catch {};
+        fs.makeDirAbsolute(full_dir_path) catch |err| {
+            switch (err) {
+                error.PathAlreadyExists => {
+                    log.debug("Directory Exists: {s}", .{full_dir_path});
+                    continue;
+                },
+                else => return err,
+            }
+        };
+        log.debug("Created Directory: {s}", .{full_dir_path});
     }
 }
 
 // Adapted from `std.log`, but without forcing a newline
 fn direct_log(comptime message: []const u8, args: anytype) void {
-    const stderrLock = std.debug.getStderrMutex();
-    stderrLock.lock();
-    defer stderrLock.unlock();
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
     const stderr = std.io.getStdErr().writer(); // Using the same IO as `std.log`
     nosuspend stderr.print(message, args) catch return;
 }

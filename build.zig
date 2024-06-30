@@ -8,15 +8,13 @@ const builtin = @import("builtin");
 
 const log = std.log;
 
-const Builder = std.build.Builder;
+const Builder = std.Build;
 const CrossTarget = std.zig.CrossTarget;
 const Mode = std.builtin.Mode;
 const LibExeObjStep = std.build.LibExeObjStep;
 
 var builder: *Builder = undefined;
-var target: *const CrossTarget = undefined;
-
-var wrapper_exe: *LibExeObjStep = undefined;
+var wrapper_exe: *Builder.Step.Compile = undefined;
 
 // Memory allocator
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -26,7 +24,6 @@ pub fn build(b: *Builder) !void {
     log.info("Zig is building an Elixir binary... ⚡", .{});
 
     builder = b;
-    target = &builder.standardTargetOptions(.{});
 
     // Run build steps!
     _ = try run_archiver();
@@ -42,9 +39,9 @@ pub fn run_archiver() !void {
     try foilz.pack_directory(release_path, "./payload.foilz");
 
     if (builtin.os.tag == .windows) {
-        _ = builder.exec(&[_][]const u8{ "cmd", "/C", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+        _ = builder.run(&[_][]const u8{ "cmd", "/C", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
     } else {
-        _ = builder.exec(&[_][]const u8{ "/bin/sh", "-c", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+        _ = builder.run(&[_][]const u8{ "/bin/sh", "-c", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
     }
 }
 
@@ -64,18 +61,19 @@ pub fn build_wrapper() !void {
     var file = try std.fs.cwd().openFile("payload.foilz", .{});
     defer file.close();
     const uncompressed_size = try file.getEndPos();
+    const target = builder.standardTargetOptions(.{});
 
     wrapper_exe = builder.addExecutable(.{
         .name = release_name,
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/wrapper.zig" },
-        .target = target.*,
+        .root_source_file = builder.path("src/wrapper.zig"),
+        .target = target,
         .optimize = opt_level,
     });
 
     const exe_options = builder.addOptions();
-    wrapper_exe.addOptions("build_options", exe_options);
+    wrapper_exe.root_module.addOptions("build_options", exe_options);
 
     exe_options.addOption([]const u8, "RELEASE_NAME", release_name);
     exe_options.addOption(u64, "UNCOMPRESSED_SIZE", uncompressed_size);
@@ -83,8 +81,8 @@ pub fn build_wrapper() !void {
     exe_options.addOption(bool, "IS_PROD", std.mem.eql(u8, is_prod, "1"));
     exe_options.addOption([]const u8, "MUSL_RUNTIME_PATH", musl_runtime_path);
 
-    if (target.isWindows()) {
-        wrapper_exe.addIncludePath(.{ .path = "src/" });
+    if (target.result.os.tag == .windows) {
+        wrapper_exe.addIncludePath(builder.path("src/"));
     }
 
     // Link standard C libary to the wrapper
@@ -92,22 +90,21 @@ pub fn build_wrapper() !void {
 
     if (plugin_path) |plugin| {
         log.info("Plugin found! {s} 🔌", .{plugin});
-
-        const plugin_module = builder.createModule(.{
-            .source_file = .{ .path = plugin },
+        const plug_mod = builder.addModule("burrito_plugin", .{
+            .root_source_file = .{ .cwd_relative = plugin },
         });
-        wrapper_exe.addModule("burrito_plugin", plugin_module);
+        wrapper_exe.root_module.addImport("burrito_plugin", plug_mod);
     } else {
-        const plugin_module = builder.createModule(.{
-            .source_file = .{ .path = "_dummy_plugin.zig" },
+        const plug_mod = builder.addModule("burrito_plugin", .{
+            .root_source_file = builder.path("_dummy_plugin.zig"),
         });
-        wrapper_exe.addModule("burrito_plugin", plugin_module);
+        wrapper_exe.root_module.addImport("burrito_plugin", plug_mod);
     }
 
-    wrapper_exe.addIncludePath(.{ .path = "src/xz" });
-    wrapper_exe.addCSourceFile(.{ .file = .{ .path = "src/xz/xz_crc32.c" }, .flags = &[0][]const u8{} });
-    wrapper_exe.addCSourceFile(.{ .file = .{ .path = "src/xz/xz_dec_lzma2.c" }, .flags = &[0][]const u8{} });
-    wrapper_exe.addCSourceFile(.{ .file = .{ .path = "src/xz/xz_dec_stream.c" }, .flags = &[0][]const u8{} });
+    wrapper_exe.addIncludePath(builder.path("src/xz"));
+    wrapper_exe.addCSourceFile(.{ .file = builder.path("src/xz/xz_crc32.c") });
+    wrapper_exe.addCSourceFile(.{ .file = builder.path("src/xz/xz_dec_lzma2.c") });
+    wrapper_exe.addCSourceFile(.{ .file = builder.path("src/xz/xz_dec_stream.c") });
 
     builder.installArtifact(wrapper_exe);
 }

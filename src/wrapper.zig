@@ -57,8 +57,8 @@ pub fn main() anyerror!void {
         var windows_arg_list = std.ArrayList([]u8).init(allocator);
         var i: usize = 0;
         while (i < arg_count) : (i += 1) {
-            var index = i;
-            var length = std.mem.len(raw_args.?[index]);
+            const index = i;
+            const length = std.mem.len(raw_args.?[index]);
             const argument = try std.unicode.utf16leToUtf8Alloc(allocator, raw_args.?[index][0..length]);
             try windows_arg_list.append(argument);
         }
@@ -165,7 +165,7 @@ fn get_base_install_dir() ![]const u8 {
         logger.info("New install path is: {s}", .{new_path});
         return try fs.path.join(allocator, &[_][]const u8{ new_path, install_suffix });
     } else |err| switch (err) {
-        error.InvalidUtf8 => {},
+        error.InvalidWtf8 => {},
         error.EnvironmentVariableNotFound => {},
         error.OutOfMemory => {},
     }
@@ -220,8 +220,8 @@ fn maybe_install_musl_runtime() anyerror!void {
     if (comptime IS_LINUX and !std.mem.eql(u8, build_options.MUSL_RUNTIME_PATH, "")) {
         // Check if the file was already extracted
         const cStr = try allocator.dupeZ(u8, build_options.MUSL_RUNTIME_PATH);
-        var statBuffer: std.os.Stat = undefined;
-        const statResult = std.os.system.stat(cStr, &statBuffer);
+        var statBuffer: std.c.Stat = undefined;
+        const statResult = std.c.stat(cStr, &statBuffer);
 
         if (statResult == 0) {
             // File exists

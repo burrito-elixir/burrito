@@ -21,7 +21,7 @@ fn get_erl_exe_name() []const u8 {
 
 pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct, args_trimmed: []const []const u8) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    var allocator = arena.allocator();
+    const allocator = arena.allocator();
 
     // Computer directories we care about
     const release_cookie_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "releases", "COOKIE" });
@@ -71,7 +71,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         try env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
         try env_map.put("__BURRITO", "1");
 
-        var win_child_proc = std.ChildProcess.init(final_args, allocator);
+        var win_child_proc = std.process.Child.init(final_args, allocator);
         win_child_proc.env_map = env_map;
         win_child_proc.stdout_behavior = .Inherit;
         win_child_proc.stdin_behavior = .Inherit;

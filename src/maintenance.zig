@@ -72,7 +72,7 @@ pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_pa
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    const prefix_dir = try std.fs.openIterableDirAbsolute(install_prefix_path, .{ .access_sub_paths = true });
+    const prefix_dir = try std.fs.openDirAbsolute(install_prefix_path, .{ .access_sub_paths = true, .iterate = true });
 
     const current_install = try install.load_install_from_path(allocator, current_install_path);
 
