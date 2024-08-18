@@ -6,6 +6,7 @@ defmodule Burrito do
 
   @spec wrap(Mix.Release.t()) :: Mix.Release.t()
   def wrap(%Mix.Release{} = release) do
+    Log.info(:build, "Burrito ready to cook! 🔪🫑🌶️🌽🧂")
     pre_check()
     Builder.build(release)
   end

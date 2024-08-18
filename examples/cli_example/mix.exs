@@ -45,7 +45,8 @@ defmodule ExampleCliApp.MixProject do
 
   defp deps do
     [
-      {:exqlite, "~> 0.11.7"},
+      {:exqlite, "~> 0.11.7"}, # A C-based NIF
+      {:jsonrs, "~> 0.3"}, # A Rust-based NIF
       {:burrito, path: "../../"}
     ]
   end

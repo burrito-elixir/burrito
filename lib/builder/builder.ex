@@ -43,7 +43,7 @@ defmodule Burrito.Builder do
 
   @phases [
     fetch: [Fetch.Init, Fetch.FetchMusl, Fetch.ResolveERTS],
-    patch: [Patch.CopyERTS, Patch.RecompileNIFs],
+    patch: [Patch.CopyERTS, Patch.RsNifs, Patch.CNifs],
     build: [Build.PackAndBuild, Build.CopyRelease]
   ]
 

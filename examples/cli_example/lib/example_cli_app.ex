@@ -12,7 +12,14 @@ defmodule ExampleCliApp do
     test_sqlite()
     IO.write("OK\n")
 
-    System.halt(0)
+    IO.write("Testing Rust NIF...")
+    test_jsonrs()
+    IO.write("OK\n")
+  end
+
+  defp test_jsonrs() do
+    %{"x" => [1, 2], "y" => 0.5} = Jsonrs.decode!("{\"x\":[1,2],\"y\":0.5}")
+    :ok
   end
 
   defp test_crypto() do

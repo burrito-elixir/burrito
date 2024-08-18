@@ -1,4 +1,9 @@
-defmodule Burrito.Steps.Patch.RecompileNIFs do
+defmodule Burrito.Steps.Patch.CNifs do
+  @moduledoc """
+  This Step module is responsible for finding (sniffing) for C (elixir_make) based
+  NIFs and recompiling them using `zig cc` for the new target platform.
+  """
+
   alias Burrito.Builder.Context
   alias Burrito.Builder.Log
   alias Burrito.Builder.Step
@@ -21,14 +26,23 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
       nif_sniff()
       |> Enum.each(fn dep ->
-        maybe_recompile_nif(dep, context.work_dir, erts_location, triplet, cflags, cxxflags, nif_env, nif_make_args)
+        maybe_recompile_nif(
+          dep,
+          context.work_dir,
+          erts_location,
+          triplet,
+          cflags,
+          cxxflags,
+          nif_env,
+          nif_make_args
+        )
       end)
     end
 
     context
   end
 
-  def nif_sniff() do
+  defp nif_sniff() do
     # The current procedure for finding out if a dependency has a NIF:
     # - List all deps in the project using Mix.Project.deps_paths/0
     #   - Iterate over those, and use Mix.Project.in_project/4 to execute a function inside their project context

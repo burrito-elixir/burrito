@@ -41,6 +41,7 @@ defmodule Burrito.MixProject do
     [
       {:req, "0.4.0"},
       {:typed_struct, "~> 0.2.0 or ~> 0.3.0", runtime: false},
+      {:rustler_precompiled, "~> 0.7.0", runtime: false},
       {:jason, "~> 1.2"},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
