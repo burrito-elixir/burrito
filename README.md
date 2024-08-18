@@ -168,7 +168,7 @@ NOTE: In order to speed up iteration times during development, if the Mix enviro
 * `targets` - A list of atoms, the targets you want to build for (`:darwin`, `:win64`, `:linux`, `:linux_musl`) whenever you run a `mix release` command -- if not defined, defaults to native host platform only.
 * `debug` - Boolean, will produce a debug build if set to true. (Default: `false`)
 * `no_clean` - Boolean, will not clean up after building if set to true. (Default: `false`)
-* `plugin` - String, a path to a Zig file that contains a function `burrito_plugin_entry()` which will be called before unpacking the payload at runtime. See [the example application for details.](example/test_plugin/plugin.zig)
+* `plugin` - String, a path to a Zig file that contains a function `burrito_plugin_entry()` which will be called before unpacking the payload at runtime. See [the example application for details.](examples/cli_example/test_plugin/plugin.zig)
 
 #### Build-Time Environment Variables
 
