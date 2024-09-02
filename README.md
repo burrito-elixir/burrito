@@ -47,7 +47,7 @@ We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakewar
 
 #### Supported Versions:
 We provide pre-compiled Erlang/OTP distributions starting from `OTP-25.3` onwards for MacOS, Linux, and Windows targets.
-If you require an older version, please refer to the section about [providing custom Erlang/OTP builds](#using-custom-erts-builds).
+If you require an older version, please refer to the section about (providing custom Erlang/OTP builds)[#using-custom-erts-builds].
 
 #### Technical Component Overview
 Burrito is composed of a few different components:
@@ -168,7 +168,7 @@ NOTE: In order to speed up iteration times during development, if the Mix enviro
 * `targets` - A list of atoms, the targets you want to build for (`:darwin`, `:win64`, `:linux`, `:linux_musl`) whenever you run a `mix release` command -- if not defined, defaults to native host platform only.
 * `debug` - Boolean, will produce a debug build if set to true. (Default: `false`)
 * `no_clean` - Boolean, will not clean up after building if set to true. (Default: `false`)
-* `plugin` - String, a path to a Zig file that contains a function `burrito_plugin_entry()` which will be called before unpacking the payload at runtime. See [the example application for details.](example/test_plugin/plugin.zig)
+* `plugin` - String, a path to a Zig file that contains a function `burrito_plugin_entry()` which will be called before unpacking the payload at runtime. See [the example application for details.](examples/cli_example/test_plugin/plugin.zig)
 
 #### Build-Time Environment Variables
 
@@ -337,7 +337,7 @@ The `custom_erts` value should be a path to a local `.tar.gz` of a release from 
   └─ Install
 ```
 
-You can easily build an archive like this by doing the following commands inside the (official Erlang source code)[https://github.com/erlang/otp]:
+You can easily build an archive like this by doing the following commands inside the [official Erlang source code](https://github.com/erlang/otp):
 
 ```bash
 # configure and build Erlang as you require...
