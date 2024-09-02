@@ -47,7 +47,7 @@ We were heavily inspired by [Bakeware](https://github.com/bake-bake-bake/bakewar
 
 #### Supported Versions:
 We provide pre-compiled Erlang/OTP distributions starting from `OTP-25.3` onwards for MacOS, Linux, and Windows targets.
-If you require an older version, please refer to the section about [providing custom Erlang/OTP builds](#using-custom-erts-builds).
+If you require an older version, please refer to the section about (providing custom Erlang/OTP builds)[#using-custom-erts-builds].
 
 #### Technical Component Overview
 Burrito is composed of a few different components:
@@ -337,7 +337,7 @@ The `custom_erts` value should be a path to a local `.tar.gz` of a release from 
   └─ Install
 ```
 
-You can easily build an archive like this by doing the following commands inside the (official Erlang source code)[https://github.com/erlang/otp]:
+You can easily build an archive like this by doing the following commands inside the [official Erlang source code](https://github.com/erlang/otp):
 
 ```bash
 # configure and build Erlang as you require...
