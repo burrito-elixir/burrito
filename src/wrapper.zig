@@ -73,6 +73,7 @@ pub fn main() anyerror!void {
     try maybe_install_musl_runtime();
 
     // Trim args to only what we actually want to pass to erlang
+    const self_path = try std.fs.selfExePathAlloc(allocator);
     const args_trimmed = args.?[1..];
 
     // If this is not a production build, we always want a clean install
@@ -142,7 +143,7 @@ pub fn main() anyerror!void {
 
     log.debug("Launching erlang...", .{});
 
-    try launcher.launch(install_dir, &env_map, &meta, args_trimmed);
+    try launcher.launch(install_dir, &env_map, &meta, self_path, args_trimmed);
 }
 
 fn do_payload_install(install_dir: []const u8, metadata_path: []const u8) !void {

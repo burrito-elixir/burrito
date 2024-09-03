@@ -3,6 +3,7 @@ defmodule ExampleCliApp do
     args = Burrito.Util.Args.get_arguments()
 
     IO.puts("My arguments are: #{inspect(args)}")
+    IO.puts("I was started from: #{Burrito.Util.Args.get_bin_path()}")
 
     IO.write("Testing Crypto (Generating ed25519 key-pair)...")
     test_crypto()
