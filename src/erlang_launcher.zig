@@ -19,7 +19,7 @@ fn get_erl_exe_name() []const u8 {
     }
 }
 
-pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct, args_trimmed: []const []const u8) !void {
+pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct, self_path: []const u8, args_trimmed: []const []const u8) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
 
@@ -70,6 +70,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         try env_map.put("RELEASE_ROOT", install_dir);
         try env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
         try env_map.put("__BURRITO", "1");
+        try env_map.put("__BURRITO_BIN_PATH", self_path);
 
         var win_child_proc = std.process.Child.init(final_args, allocator);
         win_child_proc.env_map = env_map;
@@ -105,6 +106,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         try erl_env_map.put("RELEASE_ROOT", install_dir);
         try erl_env_map.put("RELEASE_SYS_CONFIG", config_sys_path_no_ext);
         try erl_env_map.put("__BURRITO", "1");
+        try erl_env_map.put("__BURRITO_BIN_PATH", self_path);
 
         return std.process.execve(allocator, final_args, &erl_env_map);
     }

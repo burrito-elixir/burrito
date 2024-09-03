@@ -25,4 +25,18 @@ defmodule Burrito.Util.Args do
       System.argv()
     end
   end
+
+  @doc """
+  Returns the path of the wrapper binary that launched this application.
+  If not currently inside a Burrito wrapped application, returns `:not_in_burrito`.
+  """
+  @spec get_bin_path() :: binary() | :not_in_burrito
+  def get_bin_path() do
+    env_value = System.get_env("__BURRITO_BIN_PATH")
+    if env_value != nil do
+      env_value
+    else
+      :not_in_burrito
+    end
+  end
 end
