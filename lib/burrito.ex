@@ -24,10 +24,10 @@ defmodule Burrito do
       exit(1)
     end
 
-    if Enum.any?(~w(7z), &(System.find_executable(&1) == nil)) do
+    if Enum.any?(~w(7z 7zz), &(System.find_executable(&1) == nil)) do
       Log.warning(
         :build,
-        "We couldn't find 7z in your PATH, 7z is required to build Windows releases. They will fail if you don't fix this!"
+        "We couldn't find 7z/7zz in your PATH, 7z/7zz is required to build Windows releases. They will fail if you don't fix this!"
       )
     end
 

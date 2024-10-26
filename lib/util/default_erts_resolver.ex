@@ -70,10 +70,16 @@ defmodule Burrito.Util.DefaultERTSResolver do
     extraction_path = System.tmp_dir!() |> Path.join(["unpacked_erts_#{random_id}"])
     File.mkdir_p!(extraction_path)
 
+    seven_z =
+      with nil <- System.find_executable("7zz"),
+           nil <- System.find_executable("7z") do
+        raise "Couldn't find 7z/7zz"
+      end
+
     # we use 7z to unpack windows setup files, otherwise we use tar
     command =
       case target.os do
-        :windows -> ~c"7z x #{tar_dest_path} -o#{extraction_path}/otp-windows/"
+        :windows -> ~c"#{seven_z} x #{tar_dest_path} -o#{extraction_path}/otp-windows/"
         _ -> ~c"tar xzf #{tar_dest_path} -C #{extraction_path}"
       end
 
