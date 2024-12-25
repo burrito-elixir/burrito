@@ -11,6 +11,10 @@ pub fn do_maint(args: [][]u8, install_dir: []const u8) !void {
     if (args.len < 1) {
         logger.warn("No sub-command provided!", .{});
     } else {
+        if (std.mem.eql(u8, args[0], "uninstall_yes")) {
+            try do_uninstall_confirmed(install_dir);
+        }
+
         if (std.mem.eql(u8, args[0], "uninstall")) {
             try do_uninstall(install_dir);
         }
@@ -49,6 +53,13 @@ fn do_uninstall(install_dir: []const u8) !void {
         return;
     }
 
+    logger.info("Deleting directory: {s}", .{install_dir});
+    try std.fs.deleteTreeAbsolute(install_dir);
+    logger.info("Uninstall complete!", .{});
+    logger.info("Quitting.", .{});
+}
+
+fn do_uninstall_confirmed(install_dir: []const u8) !void {
     logger.info("Deleting directory: {s}", .{install_dir});
     try std.fs.deleteTreeAbsolute(install_dir);
     logger.info("Uninstall complete!", .{});
