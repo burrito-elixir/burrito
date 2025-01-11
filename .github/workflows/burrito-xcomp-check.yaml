@@ -8,16 +8,16 @@ jobs:
     name: build_examples_${{ matrix.host }}
     runs-on: ${{ matrix.host }}
     strategy:
-        matrix:
-            host: [ubuntu-latest, macos-latest]
+      matrix:
+        host: [ubuntu-latest, macos-latest]
     steps:
       # Deps
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         if: matrix.host == 'ubuntu-latest'
         with:
-          otp-version: 26.2.1
-          elixir-version: 1.16.2
+          otp-version: "27.2"
+          elixir-version: "1.18.1"
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.13.0
@@ -77,7 +77,7 @@ jobs:
   run_examples_windows:
     strategy:
       matrix:
-          host: [ubuntu-latest, macos-latest]
+        host: [ubuntu-latest, macos-latest]
     runs-on: windows-latest
     needs: build_examples
     steps:
@@ -90,7 +90,7 @@ jobs:
   run_examples_linux:
     strategy:
       matrix:
-          host: [ubuntu-latest, macos-latest]
+        host: [ubuntu-latest, macos-latest]
     runs-on: ubuntu-latest
     needs: build_examples
     steps:
@@ -104,7 +104,7 @@ jobs:
   run_examples_macos:
     strategy:
       matrix:
-          host: [ubuntu-latest, macos-latest]
+        host: [ubuntu-latest, macos-latest]
     runs-on: macos-latest
     needs: build_examples
     steps:
