@@ -12,7 +12,8 @@ pub fn do_maint(args: [][]u8, install_dir: []const u8) !void {
         logger.warn("No sub-command provided!", .{});
     } else {
         if (std.mem.eql(u8, args[0], "uninstall")) {
-            try do_uninstall(install_dir);
+            const confirmed = args.len >= 2 and std.mem.eql(u8, args[1], "--no-confirm");
+            try do_uninstall(install_dir, confirmed);
         }
 
         if (std.mem.eql(u8, args[0], "directory")) {
@@ -41,14 +42,23 @@ fn confirm() !bool {
     }
 }
 
-fn do_uninstall(install_dir: []const u8) !void {
-    logger.warn("This will uninstall the application runtime for this Burrito binary!", .{});
-    if ((try confirm()) == false) {
-        logger.warn("Uninstall was aborted!", .{});
-        logger.info("Quitting.", .{});
-        return;
+fn do_uninstall(install_dir: []const u8, auto_confirmed: bool) !void {
+    if (!auto_confirmed) {
+        logger.warn("This will uninstall the application runtime for this Burrito binary!", .{});
+        if ((try confirm()) == false) {
+            logger.warn("Uninstall was aborted!", .{});
+            logger.info("Quitting.", .{});
+            return;
+        }
     }
 
+    logger.info("Deleting directory: {s}", .{install_dir});
+    try std.fs.deleteTreeAbsolute(install_dir);
+    logger.info("Uninstall complete!", .{});
+    logger.info("Quitting.", .{});
+}
+
+fn do_uninstall_confirmed(install_dir: []const u8) !void {
     logger.info("Deleting directory: {s}", .{install_dir});
     try std.fs.deleteTreeAbsolute(install_dir);
     logger.info("Uninstall complete!", .{});
