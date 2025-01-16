@@ -12,7 +12,7 @@ pub fn do_maint(args: [][]u8, install_dir: []const u8) !void {
         logger.warn("No sub-command provided!", .{});
     } else {
         if (std.mem.eql(u8, args[0], "uninstall")) {
-            const confirmed = args.len >= 2 and std.mem.eql(u8, args[1], "confirmed");
+            const confirmed = args.len >= 2 and std.mem.eql(u8, args[1], "--no-confirm");
             try do_uninstall(install_dir, confirmed);
         }
 
