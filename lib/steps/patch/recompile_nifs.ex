@@ -22,8 +22,9 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
           triplet = Target.make_triplet(context.target)
           {:local_unpacked, path: erts_location} = context.target.erts_source
           Enum.each(nif_sniff(), fn dep ->
+            Log.info(:step, "Considering NIF #{inspect(dep)} against skip list #{inspect(skips)}...")
             case Enum.member?(skips, dep) do
-              true -> Log.info(:step, "Ignored NIF #{dep}.")
+              true -> Log.info(:step, "Ignored NIF #{inspect(dep)}.")
               false ->
                 maybe_recompile_nif(
                   dep, context.work_dir, erts_location, triplet, 
