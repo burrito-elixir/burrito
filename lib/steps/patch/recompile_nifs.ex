@@ -22,15 +22,10 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
           triplet = Target.make_triplet(context.target)
           {:local_unpacked, path: erts_location} = context.target.erts_source
           Enum.each(nif_sniff(), fn dep ->
-            Log.info(:step, "Considering NIF #{inspect(dep)} against skip list #{inspect(skips)}...")
-            case Enum.member?(skips, dep) do
-              true -> Log.info(:step, "Ignored NIF #{inspect(dep)}.")
-              false ->
-                maybe_recompile_nif(
-                  dep, context.work_dir, erts_location, triplet, 
-                  cflags, cxxflags, nif_env, nif_make_args
-                )
-            end
+            maybe_recompile_nif(
+              dep, context.work_dir, erts_location, triplet, 
+              cflags, cxxflags, nif_env, nif_make_args, skips
+            )
           end)
       end
     end
@@ -60,84 +55,90 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     end)
   end
 
-  defp maybe_recompile_nif({_, _, false}, _, _, _, _, _, _, _), do: :no_nif
+  defp maybe_recompile_nif({_, _, false}, _, _, _, _, _, _, _, _), do: :no_nif
 
   defp maybe_recompile_nif(
-         {dep, path, true},
-         release_working_path,
-         erts_path,
-         cross_target,
-         extra_cflags,
-         extra_cxxflags,
-         extra_env,
-         extra_make_args
-       ) do
-    dep = Atom.to_string(dep)
+    {dep, path, true},
+    release_working_path,
+    erts_path,
+    cross_target,
+    extra_cflags,
+    extra_cxxflags,
+    extra_env,
+    extra_make_args,
+    skip_nifs
+  ) do
+    Log.info(:step, "Considering NIF #{inspect(dep)} against skip list #{inspect(skip_nifs)}...")
+    case Enum.member?(skip_nifs, dep) do
+      true -> Log.info(:step, "Ignored NIF #{inspect(dep)}.")
+      false ->
+        dep = Atom.to_string(dep)
 
-    Log.info(:step, "Going to recompile NIF for cross-build: #{dep} -> #{cross_target}")
+        Log.info(:step, "Going to recompile NIF for cross-build: #{dep} -> #{cross_target}")
 
-    output_priv_dir =
-      Path.join(release_working_path, ["lib/#{dep}*/"])
-      |> Path.expand()
-      |> Path.wildcard()
-      |> List.first()
+        output_priv_dir =
+          Path.join(release_working_path, ["lib/#{dep}*/"])
+          |> Path.expand()
+          |> Path.wildcard()
+          |> List.first()
 
-    _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
+        _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
 
-    # Compose env variables for cross-compilation, if we're building for linux, force dynamic linking
-    erts_env =
-      if String.contains?(cross_target, "linux") do
-        erts_make_env(erts_path) ++ [{"LDFLAGS", "-dynamic-linker /dev/null"}]
-      else
-        erts_make_env(erts_path)
-      end
-
-    # This currently is only designed for elixir_make NIFs
-    build_result =
-      System.cmd("make", ["all", "--always-make"] ++ extra_make_args,
-        cd: path,
-        stderr_to_stdout: true,
-        env:
-          [
-            {"MIX_APP_PATH", output_priv_dir},
-            {"RANLIB", "zig ranlib"},
-            {"AR", "zig ar"},
-            {"CC",
-             "zig cc -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup #{extra_cflags}"},
-            {"CXX",
-             "zig c++ -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup #{extra_cxxflags}"}
-          ] ++ erts_env ++ extra_env,
-        into: IO.stream()
-      )
-
-    case build_result do
-      {_, 0} ->
-        Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
-
-        src_priv_files =
-          Path.join(output_priv_dir, ["priv/*"]) |> Path.expand() |> Path.wildcard()
-
-        final_output_priv_dir = Path.join(output_priv_dir, "priv")
-
-        Enum.each(src_priv_files, fn file ->
-          file_name = Path.basename(file)
-
-          if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
-            new_file_name = String.replace_trailing(file_name, ".so", ".dll")
-            dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
-
-            Log.info(:step, "#{file} -> #{dst_fullpath}")
-
-            File.rename!(file, dst_fullpath)
+        # Compose env variables for cross-compilation, if we're building for linux, force dynamic linking
+        erts_env =
+          if String.contains?(cross_target, "linux") do
+            erts_make_env(erts_path) ++ [{"LDFLAGS", "-dynamic-linker /dev/null"}]
           else
-            file_name
+            erts_make_env(erts_path)
           end
-        end)
 
-      {output, _} ->
-        Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
-        Log.error(:step, output)
-        exit(1)
+        # This currently is only designed for elixir_make NIFs
+        build_result =
+          System.cmd("make", ["all", "--always-make"] ++ extra_make_args,
+            cd: path,
+            stderr_to_stdout: true,
+            env:
+              [
+                {"MIX_APP_PATH", output_priv_dir},
+                {"RANLIB", "zig ranlib"},
+                {"AR", "zig ar"},
+                {"CC",
+                 "zig cc -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup #{extra_cflags}"},
+                {"CXX",
+                 "zig c++ -target #{cross_target} -O2 -dynamic -shared -Wl,-undefined=dynamic_lookup #{extra_cxxflags}"}
+              ] ++ erts_env ++ extra_env,
+            into: IO.stream()
+          )
+
+        case build_result do
+          {_, 0} ->
+            Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
+
+            src_priv_files =
+              Path.join(output_priv_dir, ["priv/*"]) |> Path.expand() |> Path.wildcard()
+
+            final_output_priv_dir = Path.join(output_priv_dir, "priv")
+
+            Enum.each(src_priv_files, fn file ->
+              file_name = Path.basename(file)
+
+              if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
+                new_file_name = String.replace_trailing(file_name, ".so", ".dll")
+                dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
+
+                Log.info(:step, "#{file} -> #{dst_fullpath}")
+
+                File.rename!(file, dst_fullpath)
+              else
+                file_name
+              end
+            end)
+
+          {output, _} ->
+            Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
+            Log.error(:step, output)
+            exit(1)
+        end
     end
   end
 
