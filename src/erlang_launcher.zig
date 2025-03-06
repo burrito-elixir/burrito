@@ -37,8 +37,18 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
     const erl_bin_path = try fs.path.join(allocator, &[_][]const u8{ erts_bin_path, get_erl_exe_name() });
 
     // Read the Erlang COOKIE file for the release
-    const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .mode = .read_write });
-    const release_cookie_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
+    const release_cookie_content = blk: {
+        if (std.process.getEnvVarOwned(allocator, "RELEASE_COOKIE")) |env_cookie| {
+            // Environment variable exists
+            break :blk env_cookie;
+        } else |_| {
+            // Environment variable not found, fallback to file
+            const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .mode = .read_write });
+            defer release_cookie_file.close();
+            const file_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
+            break :blk file_content;
+        }
+    };
 
     // Set all the required release arguments
 
