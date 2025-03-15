@@ -69,7 +69,7 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
             const needle = path;
             const replacement = "";
             const replacement_size = mem.replacementSize(u8, entry.path, needle, replacement);
-            var dest_buff: [fs.MAX_PATH_BYTES]u8 = undefined;
+            var dest_buff: [fs.max_path_bytes]u8 = undefined;
             const index = dest_buff[0..replacement_size];
             _ = mem.replace(u8, entry.path, needle, replacement, index);
 

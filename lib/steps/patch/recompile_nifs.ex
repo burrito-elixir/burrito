@@ -21,7 +21,16 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
       nif_sniff()
       |> Enum.each(fn dep ->
-        maybe_recompile_nif(dep, context.work_dir, erts_location, triplet, cflags, cxxflags, nif_env, nif_make_args)
+        maybe_recompile_nif(
+          dep,
+          context.work_dir,
+          erts_location,
+          triplet,
+          cflags,
+          cxxflags,
+          nif_env,
+          nif_make_args
+        )
       end)
     end
 
@@ -74,13 +83,8 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
     _ = System.cmd("make", ["clean"], cd: path, stderr_to_stdout: true, into: IO.stream())
 
-    # Compose env variables for cross-compilation, if we're building for linux, force dynamic linking
-    erts_env =
-      if String.contains?(cross_target, "linux") do
-        erts_make_env(erts_path) ++ [{"LDFLAGS", "-dynamic-linker /dev/null"}]
-      else
-        erts_make_env(erts_path)
-      end
+    # Compose env variables for cross-compilation
+    erts_env = erts_make_env(erts_path)
 
     # This currently is only designed for elixir_make NIFs
     build_result =
@@ -124,9 +128,8 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
           end
         end)
 
-      {output, _} ->
+      {_output, _non_zero} ->
         Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
-        Log.error(:step, output)
         exit(1)
     end
   end

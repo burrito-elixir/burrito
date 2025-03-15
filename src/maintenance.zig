@@ -7,7 +7,7 @@ const wrapper = @import("wrapper.zig");
 
 const MetaStruct = metadata.MetaStruct;
 
-pub fn do_maint(args: [][]u8, install_dir: []const u8) !void {
+pub fn do_maint(args: [][:0]u8, install_dir: []const u8) !void {
     if (args.len < 1) {
         logger.warn("No sub-command provided!", .{});
     } else {
