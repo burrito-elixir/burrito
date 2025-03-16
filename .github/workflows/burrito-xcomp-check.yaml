@@ -2,7 +2,7 @@ name: "Burrito Cross Build Build Tests"
 on:
   pull_request:
   push:
-    branches: main
+    branches: [main]
 jobs:
   build_examples:
     name: build_examples_${{ matrix.host }}
@@ -16,11 +16,11 @@ jobs:
       - uses: erlef/setup-beam@v1
         if: matrix.host == 'ubuntu-latest'
         with:
-          otp-version: "27.2"
-          elixir-version: "1.18.1"
+          otp-version: "27.3"
+          elixir-version: "1.18.3"
       - uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.14.0
       - name: Set up Homebrew
         if: matrix.host == 'macos-latest'
         id: set-up-homebrew

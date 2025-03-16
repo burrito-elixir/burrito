@@ -43,38 +43,16 @@ var allocator = arena.allocator();
 const windows = std.os.windows;
 const LPCWSTR = windows.LPCWSTR;
 const LPWSTR = windows.LPWSTR;
-pub extern "kernel32" fn GetCommandLineW() LPWSTR;
-pub extern "shell32" fn CommandLineToArgvW(lpCmdLine: LPCWSTR, out_pNumArgs: *c_int) ?[*]LPWSTR;
 
 pub fn main() anyerror!void {
-    var args: ?[][]u8 = null;
-
-    // Get argvs -- on Windows we need to call CommandLineToArgvW() with GetCommandLineW()
-    if (builtin.os.tag == .windows) {
-        // Windows arguments
-        var arg_count: c_int = undefined;
-        var raw_args = CommandLineToArgvW(GetCommandLineW(), &arg_count);
-        var windows_arg_list = std.ArrayList([]u8).init(allocator);
-        var i: usize = 0;
-        while (i < arg_count) : (i += 1) {
-            const index = i;
-            const length = std.mem.len(raw_args.?[index]);
-            const argument = try std.unicode.utf16leToUtf8Alloc(allocator, raw_args.?[index][0..length]);
-            try windows_arg_list.append(argument);
-        }
-
-        args = windows_arg_list.items;
-    } else {
-        // POSIX arguments
-        args = try std.process.argsAlloc(allocator);
-    }
+    const args = try std.process.argsAlloc(allocator);
 
     // If on linux, maybe install the musl libc runtime file for our pre-compiled Erlang
     try maybe_install_musl_runtime();
 
     // Trim args to only what we actually want to pass to erlang
     const self_path = try std.fs.selfExePathAlloc(allocator);
-    const args_trimmed = args.?[1..];
+    const args_trimmed = args[1..];
 
     // If this is not a production build, we always want a clean install
     const wants_clean_install = !build_options.IS_PROD;
@@ -162,7 +140,7 @@ fn get_base_install_dir() ![]const u8 {
     const env_install_dir_name = try std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name});
 
     if (std.process.getEnvVarOwned(allocator, env_install_dir_name)) |new_path| {
-        logger.info("Install path is being overriden using `{s}`", .{env_install_dir_name});
+        logger.info("Install path is being overridden using `{s}`", .{env_install_dir_name});
         logger.info("New install path is: {s}", .{new_path});
         return try fs.path.join(allocator, &[_][]const u8{ new_path, install_suffix });
     } else |err| switch (err) {
