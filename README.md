@@ -110,7 +110,7 @@ We support _targeting_ Windows (x86_64) from MacOS and Linux, we _do not_ offici
 
 You must have the following installed and in your PATH:
 
-* Zig (0.13.0) -- `zig`
+* Zig (0.14.0) -- `zig`
 * XZ -- `xz`
 * 7z -- `7z` (For Windows Targets)
 
@@ -148,7 +148,7 @@ You must have the following installed and in your PATH:
 (See the [Mix Release Config Options](#mix-release-config-options) for additional options)
 
 3. Add the releases function into your project function:
-   
+
   ```elixir
   def project do
     [
@@ -296,7 +296,7 @@ Build qualifiers are a simple way to pass specific flags into the Burrito build 
 * `nif_cxxflags` - `binary()` String that is appended to the end of `CXXFLAGS` when recompiling NIFs for another target.
 * `nif_env` - `list(tuple())` List of 2-tuples (strings) that define environment variables when recompiling NIFs for another target.
 * `nif_make_args` - `binary()` String that is appended to the `make` call when Elixir make is invoked for recompiling NIFs.
-* `skip_nifs` - `boolean()` Boolean value, defaults to `false`, if set to `true` NIFs will NOT be recompiled. Use this if you want to copy in NIFs that you recompiled yourself in combination with extra/custom build steps. 
+* `skip_nifs` - `boolean()` Boolean value, defaults to `false`, if set to `true` NIFs will NOT be recompiled. Use this if you want to copy in NIFs that you recompiled yourself in combination with extra/custom build steps.
 
 Tip: You can use these qualifiers as a way to pass per-target information into your custom build steps.
 
