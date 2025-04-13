@@ -38,7 +38,17 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
 
     // Read the Erlang COOKIE file for the release
     const release_cookie_file = try fs.openFileAbsolute(release_cookie_path, .{ .mode = .read_write });
-    const release_cookie_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
+    var release_cookie_content = try release_cookie_file.readToEndAlloc(allocator, MAX_READ_SIZE);
+
+    // Override the cookie if the env variable RELEASE_COOKIE is defined
+    const maybe_cookie = std.process.getEnvVarOwned(allocator, "RELEASE_COOKIE") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+
+    if (maybe_cookie) |cookie| {
+        release_cookie_content = cookie;
+    }
 
     // Set all the required release arguments
 

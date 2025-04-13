@@ -5,6 +5,8 @@ defmodule ExampleCliApp do
     IO.puts("My arguments are: #{inspect(args)}")
     IO.puts("I was started from: #{Burrito.Util.Args.get_bin_path()}")
 
+    test_release_cookie()
+
     IO.write("Testing Crypto (Generating ed25519 key-pair)...")
     test_crypto()
     IO.write("OK\n")
@@ -14,6 +16,11 @@ defmodule ExampleCliApp do
     IO.write("OK\n")
 
     System.halt(0)
+  end
+
+  defp test_release_cookie() do
+    {:ok, [[cookie_value]]} = :init.get_argument(:setcookie)
+    IO.puts("My Release Cookie is: #{inspect(cookie_value)}")
   end
 
   defp test_crypto() do
