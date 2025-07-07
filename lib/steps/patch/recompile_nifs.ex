@@ -50,7 +50,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
     Enum.map(paths, fn {dep_name, path} ->
       Mix.Project.in_project(dep_name, path, fn module ->
-        if module && Keyword.has_key?(module.project, :compilers) do
+        if module && Keyword.has_key?(module.project(), :compilers) do
           {dep_name, path, Enum.member?(module.project[:compilers], :elixir_make)}
         else
           {dep_name, path, false}
