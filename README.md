@@ -159,7 +159,14 @@ You must have the following installed and in your PATH:
   end
   ```
 
-4. To build a release for all the targets defined in your `mix.exs` file: `MIX_ENV=prod mix release`
+4. To build a release for all the targets defined in your `mix.exs` file:
+
+    ```sh
+    MIX_ENV=prod mix release
+    ```
+
+    Per-target binaries are now available in the `burrito_out/` folder.
+
 5. You can also build a single target by setting the `BURRITO_TARGET` environment variable to the alias for that target (e.g. Setting `BURRITO_TARGET=macos` builds only the `macos` target defined above.)
 
 NOTE: In order to speed up iteration times during development, if the Mix environment is not set to `prod`, the binary will always extract its payload, even if that version of the application has already been unpacked on the target machine.
