@@ -6,9 +6,10 @@ defmodule Burrito.Steps.Fetch.FetchMusl do
 
   alias Burrito.Util.FileCache
 
+  # Linked against musl libc v1.2.5
   @linux_musl_url "https://beam-machine-universal.b-cdn.net/musl/libc-musl-{HASH}.so"
-  @linux_musl_runtime_x86_64 "17613ec13d9aa9e5e907e6750785c5bbed3ad49472ec12281f592e2f0f2d3dbd"
-  @linux_musl_runtime_aarch64 "939d11dcd3b174a8dee05047f2ae794c5c43af54720c352fa946cd8b0114627a"
+  @linux_musl_runtime_x86_64 "71c35316aff45bbfd243d8eb9bfc4a58b6eb97cee09514cd2030e145b68107fb"
+  @linux_musl_runtime_aarch64 "6b558025200a5ed1308e2ce2675217afec71b6c5a9d561e52262ca948d59905e"
 
   @please_do_not_abuse_these_downloads_bandwidth_costs_money "?please-respect-my-bandwidth-costs=thank-you"
 
