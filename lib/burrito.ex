@@ -3,6 +3,8 @@ defmodule Burrito do
   alias Burrito.Builder.Log
 
   @zig_version_expected %Version{major: 0, minor: 14, patch: 1}
+  @openssl_version %Version{major: 3, minor: 5, patch: 1}
+  @musl_version %Version{major: 1, minor: 2, patch: 5}
 
   @spec wrap(Mix.Release.t()) :: Mix.Release.t()
   def wrap(%Mix.Release{} = release) do
@@ -10,8 +12,18 @@ defmodule Burrito do
     Builder.build(release)
   end
 
+  @spec register_erts_resolver(module()) :: :ok
   def register_erts_resolver(module) when is_atom(module) do
     Application.put_env(:burrito, :erts_resolver, module)
+  end
+
+  @spec get_versions() :: map()
+  def get_versions() do
+    %{
+      zig: @zig_version_expected,
+      openssl: @openssl_version,
+      musl: @musl_version
+    }
   end
 
   defp pre_check() do
