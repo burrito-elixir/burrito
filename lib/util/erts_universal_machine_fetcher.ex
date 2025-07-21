@@ -15,10 +15,10 @@ defmodule Burrito.Util.ERTSUniversalMachineFetcher do
     final_url =
       case os do
         :darwin ->
-          @mac_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money
+          @mac_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money <> append_versions()
 
         :linux ->
-          @linux_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money
+          @linux_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money <> append_versions()
 
         :windows ->
           @windows_url
@@ -29,5 +29,11 @@ defmodule Burrito.Util.ERTSUniversalMachineFetcher do
     Log.success(:step, "Remote ERTS From Beam Machine: #{final_url}")
 
     URI.parse(final_url)
+  end
+
+  defp append_versions() do
+    # These are used to cache-bust when openssl or musl versions are changed upstream in the BEAM Machine build server
+    versions = Burrito.get_versions()
+    "&openssl=#{to_string(versions.openssl)}&musl=#{to_string(versions.musl)}"
   end
 end
