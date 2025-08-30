@@ -7,6 +7,10 @@ const wrapper = @import("wrapper.zig");
 
 const MetaStruct = metadata.MetaStruct;
 
+var stdout_buf: [64]u8 = undefined;
+var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+const stdout = &stdout_writer.interface;
+
 pub fn do_maint(args: [][:0]u8, install_dir: []const u8) !void {
     if (args.len < 1) {
         logger.warn("No sub-command provided!", .{});
@@ -26,24 +30,27 @@ pub fn do_maint(args: [][:0]u8, install_dir: []const u8) !void {
 }
 
 fn confirm() !bool {
-    var stdin = std.io.getStdIn().reader();
+    var stdin_buf: [8]u8 = undefined;
+    var stdin_reader = std.fs.File.stdin().reader(&stdin_buf);
+    var stdin = &stdin_reader.interface;
 
     logger.query("Please confirm this action [y/n]: ", .{});
 
-    var buf: [8]u8 = undefined;
-    if (try stdin.readUntilDelimiterOrEof(buf[0..], '\n')) |user_input| {
+    if (stdin.takeDelimiterExclusive('\n')) |user_input| {
         if (std.mem.eql(u8, user_input[0..1], "y") or std.mem.eql(u8, user_input[0..1], "Y")) {
             return true;
         }
-        return false;
-    } else {
-        return false;
+    } else |err| {
+        logger.err("Failed to confirm: {t}", .{err});
+        return err;
     }
+
+    return false;
 }
 
 fn do_uninstall(install_dir: []const u8) !void {
     logger.warn("This will uninstall the application runtime for this Burrito binary!", .{});
-    if ((try confirm()) == false) {
+    if (try confirm() == false) {
         logger.warn("Uninstall was aborted!", .{});
         logger.info("Quitting.", .{});
         return;
@@ -56,13 +63,13 @@ fn do_uninstall(install_dir: []const u8) !void {
 }
 
 fn print_metadata() !void {
-    var stdout = std.io.getStdOut().writer();
-    stdout.print("{s}", .{wrapper.RELEASE_METADATA_JSON}) catch {};
+    try stdout.print("{s}", .{wrapper.RELEASE_METADATA_JSON});
+    try stdout.flush();
 }
 
 fn print_install_dir(install_dir: []const u8) !void {
-    var stdout = std.io.getStdOut().writer();
-    stdout.print("{s}\n", .{install_dir}) catch {};
+    try stdout.print("{s}\n", .{install_dir});
+    try stdout.flush();
 }
 
 pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_path: []const u8) !void {

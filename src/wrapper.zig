@@ -19,7 +19,6 @@ const foilz = @import("archiver.zig");
 // Maint utils
 const logger = @import("logger.zig");
 const maint = @import("maintenance.zig");
-const shutil = @import("shutil.zig");
 
 // Install dir suffix
 const install_suffix = ".burrito";
@@ -35,31 +34,32 @@ const IS_LINUX = builtin.os.tag == .linux;
 pub const FOILZ_PAYLOAD = @embedFile("payload.foilz.xz");
 pub const RELEASE_METADATA_JSON = @embedFile("_metadata.json");
 
-// Memory allocator
-var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-var allocator = arena.allocator();
-
 // Windows cmd argument parser
 const windows = std.os.windows;
 const LPCWSTR = windows.LPCWSTR;
 const LPWSTR = windows.LPWSTR;
 
-pub fn main() anyerror!void {
-    const args = try std.process.argsAlloc(allocator);
+pub fn main() !void {
+    var arena_impl = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena_impl.deinit();
+
+    const arena = arena_impl.allocator();
+
+    const args = try std.process.argsAlloc(arena);
 
     // If on linux, maybe install the musl libc runtime file for our pre-compiled Erlang
-    try maybe_install_musl_runtime();
+    try maybe_install_musl_runtime(arena);
 
     // Trim args to only what we actually want to pass to erlang
-    const self_path = try std.fs.selfExePathAlloc(allocator);
+    const self_path = try std.fs.selfExePathAlloc(arena);
     const args_trimmed = args[1..];
 
     // If this is not a production build, we always want a clean install
     const wants_clean_install = !build_options.IS_PROD;
 
-    const meta = metadata.parse(allocator, RELEASE_METADATA_JSON).?;
-    const install_dir = (try get_install_dir(&meta))[0..];
-    const metadata_path = try fs.path.join(allocator, &[_][]const u8{ install_dir, "_metadata.json" });
+    const meta = metadata.parse(arena, RELEASE_METADATA_JSON).?;
+    const install_dir = try get_install_dir(arena, &meta);
+    const metadata_path = try fs.path.join(arena, &.{ install_dir, "_metadata.json" });
 
     // Check for maintenance commands
     if (args_trimmed.len > 0 and std.mem.eql(u8, args_trimmed[0], "maintenance")) {
@@ -80,12 +80,12 @@ pub fn main() anyerror!void {
         if (err == error.FileNotFound) {
             needs_install = true;
         } else {
-            log.err("We failed to open the destination directory with an unexpected error: {!}", .{err});
+            log.err("We failed to open the destination directory with an unexpected error: {t}", .{err});
             return;
         }
     };
 
-    log.debug("Passing args string: {s}", .{args_trimmed});
+    log.debug("Passing args string: {any}", .{args_trimmed});
 
     // Execute plugin code
     plugin.burrito_plugin_entry(install_dir, RELEASE_METADATA_JSON);
@@ -100,20 +100,20 @@ pub fn main() anyerror!void {
             try std.fs.cwd().makePath(install_dir);
         }
 
-        try do_payload_install(install_dir, metadata_path);
+        try do_payload_install(arena, install_dir, metadata_path);
     } else {
         log.debug("Skipping archive unpacking, this machine already has the app installed!", .{});
     }
 
     // Clean up older versions
-    const base_install_path = try get_base_install_dir();
+    const base_install_path = try get_base_install_dir(arena);
     try maint.do_clean_old_versions(base_install_path, install_dir);
 
     // Get Env
-    var env_map = try std.process.getEnvMap(allocator);
+    var env_map = try std.process.getEnvMap(arena);
 
     // Add _IS_TTY env variable
-    if (shutil.is_tty()) {
+    if (std.fs.File.stdout().isTty()) {
         try env_map.put("_IS_TTY", "1");
     } else {
         try env_map.put("_IS_TTY", "0");
@@ -124,66 +124,70 @@ pub fn main() anyerror!void {
     try launcher.launch(install_dir, &env_map, &meta, self_path, args_trimmed);
 }
 
-fn do_payload_install(install_dir: []const u8, metadata_path: []const u8) !void {
+fn do_payload_install(arena: std.mem.Allocator, install_dir: []const u8, metadata_path: []const u8) !void {
     // Unpack the files
-    try foilz.unpack_files(FOILZ_PAYLOAD, install_dir, build_options.UNCOMPRESSED_SIZE);
+    try foilz.unpack_files(arena, FOILZ_PAYLOAD, install_dir, build_options.UNCOMPRESSED_SIZE);
 
     // Write metadata file
     const file = try fs.createFileAbsolute(metadata_path, .{ .truncate = true });
     try file.writeAll(RELEASE_METADATA_JSON);
 }
 
-fn get_base_install_dir() ![]const u8 {
+fn get_base_install_dir(arena: std.mem.Allocator) ![]const u8 {
     // If we have a override for the install path, use that, otherwise, continue to return
     // the standard install path
-    const upper_name = try std.ascii.allocUpperString(allocator, build_options.RELEASE_NAME);
-    const env_install_dir_name = try std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name});
+    const upper_name = try std.ascii.allocUpperString(arena, build_options.RELEASE_NAME);
+    const env_install_dir_name = try std.fmt.allocPrint(arena, "{s}_INSTALL_DIR", .{upper_name});
 
-    if (std.process.getEnvVarOwned(allocator, env_install_dir_name)) |new_path| {
+    if (std.process.getEnvVarOwned(arena, env_install_dir_name)) |new_path| {
         logger.info("Install path is being overridden using `{s}`", .{env_install_dir_name});
         logger.info("New install path is: {s}", .{new_path});
-        return try fs.path.join(allocator, &[_][]const u8{ new_path, install_suffix });
+        return try fs.path.join(arena, &[_][]const u8{ new_path, install_suffix });
     } else |err| switch (err) {
         error.InvalidWtf8 => {},
         error.EnvironmentVariableNotFound => {},
         error.OutOfMemory => {},
     }
 
-    const app_dir = fs.getAppDataDir(allocator, install_suffix) catch {
-        install_dir_error();
+    const app_dir = fs.getAppDataDir(arena, install_suffix) catch {
+        install_dir_error(arena);
         return "";
     };
 
     return app_dir;
 }
 
-fn get_install_dir(meta: *const MetaStruct) ![]u8 {
+fn get_install_dir(arena: std.mem.Allocator, meta: *const MetaStruct) ![]u8 {
     // Combine the hash of the payload and a base dir to get a safe install directory
-    const base_install_path = try get_base_install_dir();
+    const base_install_path = try get_base_install_dir(arena);
 
     // Parse the ERTS version and app version from the metadata JSON string
-    const dir_name = try std.fmt.allocPrint(allocator, "{s}_erts-{s}_{s}", .{ build_options.RELEASE_NAME, meta.erts_version, meta.app_version });
+    const dir_name = try std.fmt.allocPrint(
+        arena,
+        "{s}_erts-{s}_{s}",
+        .{ build_options.RELEASE_NAME, meta.erts_version, meta.app_version },
+    );
 
     // Ensure that base directory is created
     std.fs.cwd().makePath(base_install_path) catch {
-        install_dir_error();
+        install_dir_error(arena);
         return "";
     };
 
     // Construct the full app install path
-    const name = fs.path.join(allocator, &[_][]const u8{ base_install_path, dir_name }) catch {
-        install_dir_error();
+    const name = fs.path.join(arena, &.{ base_install_path, dir_name }) catch {
+        install_dir_error(arena);
         return "";
     };
 
     return name;
 }
 
-fn install_dir_error() void {
-    const upper_name = std.ascii.allocUpperString(allocator, build_options.RELEASE_NAME) catch {
+fn install_dir_error(arena: std.mem.Allocator) void {
+    const upper_name = std.ascii.allocUpperString(arena, build_options.RELEASE_NAME) catch {
         return;
     };
-    const env_install_dir_name = std.fmt.allocPrint(allocator, "{s}_INSTALL_DIR", .{upper_name}) catch {
+    const env_install_dir_name = std.fmt.allocPrint(arena, "{s}_INSTALL_DIR", .{upper_name}) catch {
         return;
     };
 
@@ -195,10 +199,10 @@ fn install_dir_error() void {
     std.process.exit(1);
 }
 
-fn maybe_install_musl_runtime() anyerror!void {
+fn maybe_install_musl_runtime(arena: std.mem.Allocator) !void {
     if (comptime IS_LINUX and !std.mem.eql(u8, build_options.MUSL_RUNTIME_PATH, "")) {
         // Check if the file was already extracted
-        const cStr = try allocator.dupeZ(u8, build_options.MUSL_RUNTIME_PATH);
+        const cStr = try arena.dupeZ(u8, build_options.MUSL_RUNTIME_PATH);
         var statBuffer: std.c.Stat = undefined;
         const statResult = std.c.stat(cStr, &statBuffer);
 

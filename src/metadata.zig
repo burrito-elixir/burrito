@@ -11,7 +11,7 @@ pub const MetaStruct = struct {
 
 pub fn parse(allocator: std.mem.Allocator, string_data: []const u8) ?MetaStruct {
     const metadata_parsed = std.json.parseFromSlice(MetaStruct, allocator, string_data, .{}) catch |e| {
-        std.log.err("Error when parsing metadata: {!}", .{e});
+        std.log.err("Error when parsing metadata: {t}", .{e});
         return null;
     };
 
