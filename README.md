@@ -110,7 +110,7 @@ We support _targeting_ Windows (x86_64) from MacOS and Linux, we _do not_ offici
 
 You must have the following installed and in your PATH:
 
-* Zig (0.14.0) -- `zig`
+* Zig (0.15.1) -- `zig`
 * XZ -- `xz`
 * 7z -- `7z` (For Windows Targets)
 

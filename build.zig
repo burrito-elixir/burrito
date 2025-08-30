@@ -8,71 +8,71 @@ const builtin = @import("builtin");
 
 const log = std.log;
 
-const Builder = std.Build;
 const CrossTarget = std.zig.CrossTarget;
 const Mode = std.builtin.Mode;
 const LibExeObjStep = std.build.LibExeObjStep;
 
-var builder: *Builder = undefined;
-var wrapper_exe: *Builder.Step.Compile = undefined;
-
-// Memory allocator
-var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-var allocator = arena.allocator();
-
-pub fn build(b: *Builder) !void {
+pub fn build(b: *std.Build) !void {
     log.info("Zig is building an Elixir binary... ⚡", .{});
 
-    builder = b;
-
     // Run build steps!
-    _ = try run_archiver();
-    _ = try build_wrapper();
+    try run_archiver(b);
+    try build_wrapper(b);
 
     log.info("DONE 🚀", .{});
 }
 
-pub fn run_archiver() !void {
+pub fn run_archiver(b: *std.Build) !void {
     log.info("Generating and compressing release payload... 📦", .{});
 
-    const release_path = try std.process.getEnvVarOwned(allocator, "__BURRITO_RELEASE_PATH");
-    try foilz.pack_directory(release_path, "./payload.foilz");
+    const release_path = try std.process.getEnvVarOwned(b.allocator, "__BURRITO_RELEASE_PATH");
+    try foilz.pack_directory(b.allocator, release_path, "./payload.foilz");
 
     if (builtin.os.tag == .windows) {
-        _ = builder.run(&[_][]const u8{ "cmd", "/C", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+        _ = b.run(&[_][]const u8{
+            "cmd",
+            "/C",
+            "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz",
+        });
     } else {
-        _ = builder.run(&[_][]const u8{ "/bin/sh", "-c", "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz" });
+        _ = b.run(&[_][]const u8{
+            "/bin/sh",
+            "-c",
+            "xz -9ez --check=crc32 --stdout --keep payload.foilz > src/payload.foilz.xz",
+        });
     }
 }
 
-pub fn build_wrapper() !void {
+pub fn build_wrapper(b: *std.Build) !void {
     log.info("Building wrapper and embedding payload... 🌯", .{});
 
-    const release_name = try std.process.getEnvVarOwned(allocator, "__BURRITO_RELEASE_NAME");
-    const plugin_path = std.process.getEnvVarOwned(allocator, "__BURRITO_PLUGIN_PATH") catch null;
-    const is_prod = std.process.getEnvVarOwned(allocator, "__BURRITO_IS_PROD") catch "1";
-    const musl_runtime_path = std.process.getEnvVarOwned(allocator, "__BURRITO_MUSL_RUNTIME_PATH") catch "";
-    var opt_level = std.builtin.Mode.Debug;
+    const release_name = try std.process.getEnvVarOwned(b.allocator, "__BURRITO_RELEASE_NAME");
+    const plugin_path = std.process.getEnvVarOwned(b.allocator, "__BURRITO_PLUGIN_PATH") catch null;
+    const is_prod = std.process.getEnvVarOwned(b.allocator, "__BURRITO_IS_PROD") catch "1";
+    const musl_runtime_path = std.process.getEnvVarOwned(b.allocator, "__BURRITO_MUSL_RUNTIME_PATH") catch "";
+    var opt_level = std.builtin.OptimizeMode.Debug;
 
     if (std.mem.eql(u8, is_prod, "1")) {
-        opt_level = std.builtin.Mode.ReleaseSmall;
+        opt_level = std.builtin.OptimizeMode.ReleaseSmall;
     }
 
     var file = try std.fs.cwd().openFile("payload.foilz", .{});
     defer file.close();
     const uncompressed_size = try file.getEndPos();
-    const target = builder.standardTargetOptions(.{});
+    const target = b.standardTargetOptions(.{});
 
-    wrapper_exe = builder.addExecutable(.{
+    const wrapper_exe = b.addExecutable(.{
         .name = release_name,
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
-        .root_source_file = builder.path("src/wrapper.zig"),
-        .target = target,
-        .optimize = opt_level,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/wrapper.zig"),
+            .target = target,
+            .optimize = opt_level,
+        }),
     });
 
-    const exe_options = builder.addOptions();
+    const exe_options = b.addOptions();
     wrapper_exe.root_module.addOptions("build_options", exe_options);
 
     exe_options.addOption([]const u8, "RELEASE_NAME", release_name);
@@ -82,7 +82,7 @@ pub fn build_wrapper() !void {
     exe_options.addOption([]const u8, "MUSL_RUNTIME_PATH", musl_runtime_path);
 
     if (target.result.os.tag == .windows) {
-        wrapper_exe.addIncludePath(builder.path("src/"));
+        wrapper_exe.addIncludePath(b.path("src/"));
     }
 
     // Link standard C libary to the wrapper
@@ -90,21 +90,21 @@ pub fn build_wrapper() !void {
 
     if (plugin_path) |plugin| {
         log.info("Plugin found! {s} 🔌", .{plugin});
-        const plug_mod = builder.addModule("burrito_plugin", .{
+        const plug_mod = b.addModule("burrito_plugin", .{
             .root_source_file = .{ .cwd_relative = plugin },
         });
         wrapper_exe.root_module.addImport("burrito_plugin", plug_mod);
     } else {
-        const plug_mod = builder.addModule("burrito_plugin", .{
-            .root_source_file = builder.path("_dummy_plugin.zig"),
+        const plug_mod = b.addModule("burrito_plugin", .{
+            .root_source_file = b.path("_dummy_plugin.zig"),
         });
         wrapper_exe.root_module.addImport("burrito_plugin", plug_mod);
     }
 
-    wrapper_exe.addIncludePath(builder.path("src/xz"));
-    wrapper_exe.addCSourceFile(.{ .file = builder.path("src/xz/xz_crc32.c") });
-    wrapper_exe.addCSourceFile(.{ .file = builder.path("src/xz/xz_dec_lzma2.c") });
-    wrapper_exe.addCSourceFile(.{ .file = builder.path("src/xz/xz_dec_stream.c") });
+    wrapper_exe.addIncludePath(b.path("src/xz"));
+    wrapper_exe.addCSourceFile(.{ .file = b.path("src/xz/xz_crc32.c") });
+    wrapper_exe.addCSourceFile(.{ .file = b.path("src/xz/xz_dec_lzma2.c") });
+    wrapper_exe.addCSourceFile(.{ .file = b.path("src/xz/xz_dec_stream.c") });
 
-    builder.installArtifact(wrapper_exe);
+    b.installArtifact(wrapper_exe);
 }

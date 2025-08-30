@@ -33,6 +33,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
 const fs = std.fs;
 const log = std.log;
 const mem = std.mem;
@@ -44,22 +46,24 @@ const xz = @cImport(@cInclude("xz.h"));
 const MAGIC = "FOILZ";
 const MAX_READ_SIZE = 1000000000;
 
-pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
+pub fn pack_directory(arena: Allocator, path: []const u8, archive_path: []const u8) anyerror!void {
     // Open a file for the archive
-    _ = try fs.cwd().createFile(archive_path, .{ .truncate = true });
-    const arch_file = try fs.cwd().openFile(archive_path, .{ .mode = .read_write });
-    const foilz_writer = fs.File.writer(arch_file);
+    const arch_file = try fs.cwd().createFile(archive_path, .{ .truncate = true });
+    defer arch_file.close();
+
+    var foilz_write_buf: [1024]u8 = undefined;
+    var foilz_writer = arch_file.writer(&foilz_write_buf);
+    const writer = &foilz_writer.interface;
 
     var dir = try fs.openDirAbsolute(path, .{ .access_sub_paths = true, .iterate = true });
-    var walker = try dir.walk(allocator);
+    defer dir.close();
+
+    var walker = try dir.walk(arena);
+    defer walker.deinit();
 
     var count: u32 = 0;
 
-    try write_magic_number(&foilz_writer);
+    try writer.writeAll(MAGIC);
 
     while (try walker.next()) |entry| {
         if (entry.kind == .file) {
@@ -73,23 +77,26 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
             const index = dest_buff[0..replacement_size];
             _ = mem.replace(u8, entry.path, needle, replacement, index);
 
-            // Read the entire contents of the file into a buffer
             const file = try entry.dir.openFile(entry.basename, .{});
             defer file.close();
 
-            // Allocate memory for the file
-            var file_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-            defer file_arena.deinit();
-            const file_allocator = file_arena.allocator();
+            var read_buf: [1024]u8 = undefined;
+            var file_reader = file.reader(&read_buf);
+            const reader = &file_reader.interface;
 
-            // Read the file
-            const file_buffer = try file.readToEndAlloc(file_allocator, MAX_READ_SIZE);
             const stat = try file.stat();
 
             // Write file record to archive
-            try write_file_record(&foilz_writer, index, file_buffer, stat.mode);
+            const name = index;
+            try writer.writeInt(u64, name.len, .little);
+            try writer.writeAll(name);
+            try writer.writeInt(u64, stat.size, .little);
+            if (stat.size > 0) {
+                assert(stat.size == try reader.streamRemaining(writer));
+            }
+            try writer.writeInt(usize, stat.mode, .little);
 
-            count = count + 1;
+            count += 1;
 
             direct_log("\rinfo: 🔍 Files Packed: {}", .{count});
         }
@@ -97,43 +104,17 @@ pub fn pack_directory(path: []const u8, archive_path: []const u8) anyerror!void 
     direct_log("\n", .{});
 
     // Log success
+
+    try writer.writeAll(MAGIC);
+    try writer.flush();
+
     log.info("Archived {} files into payload! 📥", .{count});
-
-    // Clean up memory
-    walker.deinit();
-
-    // Close the archive file
-    try write_magic_number(&foilz_writer);
-
-    arch_file.close();
 }
 
-pub fn write_magic_number(foilz_writer: *const fs.File.Writer) !void {
-    _ = try foilz_writer.write(MAGIC);
-}
-
-pub fn write_file_record(foilz_writer: *const fs.File.Writer, name: []const u8, data: []const u8, mode: usize) !void {
-    _ = try foilz_writer.writeInt(u64, name.len, .little);
-    _ = try foilz_writer.write(name);
-    _ = try foilz_writer.writeInt(u64, data.len, .little);
-    if (data.len > 0) {
-        _ = try foilz_writer.write(data);
-    }
-    _ = try foilz_writer.writeInt(usize, mode, .little);
-}
-
-pub fn validate_magic(first_bytes: []const u8) bool {
-    return mem.eql(u8, first_bytes, MAGIC);
-}
-
-pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: u64) !void {
+pub fn unpack_files(arena: Allocator, data: []const u8, dest_path: []const u8, uncompressed_size: u64) !void {
     // Decompress the data in the payload
 
-    var decompress_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer decompress_arena.deinit();
-    var allocator = decompress_arena.allocator();
-
-    var decompressed: []u8 = try allocator.alloc(u8, uncompressed_size);
+    var decompressed: []u8 = try arena.alloc(u8, uncompressed_size);
 
     var xz_buffer: xz.xz_buf = .{
         .in = data.ptr,
@@ -155,7 +136,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
     }
 
     // Validate the header of the payload
-    if (!validate_magic(decompressed[0..5])) {
+    if (!std.mem.eql(u8, MAGIC, decompressed[0..5])) {
         return error.BadHeader;
     }
 
@@ -190,12 +171,12 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
 
         //////
         // Write the file
-        const full_file_path = try fs.path.join(allocator, &[_][]const u8{ dest_path[0..], file_name });
+        const full_file_path = try fs.path.join(arena, &[_][]const u8{ dest_path[0..], file_name });
 
         //////
         // Create any directories needed
         const dir_name = fs.path.dirname(file_name);
-        if (dir_name != null) try create_dirs(dest_path[0..], dir_name.?, allocator);
+        if (dir_name != null) try create_dirs(dest_path[0..], dir_name.?, arena);
 
         log.debug("Unpacked File: {s}", .{full_file_path});
 
@@ -223,7 +204,7 @@ pub fn unpack_files(data: []const u8, dest_path: []const u8, uncompressed_size: 
     log.debug("Unpacked {} files", .{file_count});
 }
 
-fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: std.mem.Allocator) !void {
+fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: Allocator) !void {
     var iterator = try fs.path.componentIterator(sub_dir_names);
     var full_dir_path = try fs.path.join(allocator, &[_][]const u8{ dest_path, "" });
 
@@ -244,8 +225,11 @@ fn create_dirs(dest_path: []const u8, sub_dir_names: []const u8, allocator: std.
 
 // Adapted from `std.log`, but without forcing a newline
 fn direct_log(comptime message: []const u8, args: anytype) void {
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
-    const stderr = std.io.getStdErr().writer(); // Using the same IO as `std.log`
-    nosuspend stderr.print(message, args) catch return;
+    var buffer: [64]u8 = undefined;
+    const stderr = std.debug.lockStderrWriter(&buffer);
+    defer std.debug.unlockStderrWriter();
+    nosuspend {
+        stderr.print(message, args) catch return;
+        stderr.flush() catch return;
+    }
 }
