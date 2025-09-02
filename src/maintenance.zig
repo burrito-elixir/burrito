@@ -7,11 +7,11 @@ const wrapper = @import("wrapper.zig");
 
 const MetaStruct = metadata.MetaStruct;
 
-var stdout_buf: [64]u8 = undefined;
-var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
-const stdout = &stdout_writer.interface;
-
 pub fn do_maint(args: [][:0]u8, install_dir: []const u8) !void {
+    var stdout_buf: [64]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+    const stdout = &stdout_writer.interface;
+
     if (args.len < 1) {
         logger.warn("No sub-command provided!", .{});
     } else {
@@ -20,11 +20,11 @@ pub fn do_maint(args: [][:0]u8, install_dir: []const u8) !void {
         }
 
         if (std.mem.eql(u8, args[0], "directory")) {
-            try print_install_dir(install_dir);
+            try print_install_dir(stdout, install_dir);
         }
 
         if (std.mem.eql(u8, args[0], "meta")) {
-            try print_metadata();
+            try print_metadata(stdout);
         }
     }
 }
@@ -62,14 +62,14 @@ fn do_uninstall(install_dir: []const u8) !void {
     logger.info("Quitting.", .{});
 }
 
-fn print_metadata() !void {
-    try stdout.print("{s}", .{wrapper.RELEASE_METADATA_JSON});
-    try stdout.flush();
+fn print_metadata(out: *std.Io.Writer) !void {
+    try out.print("{s}", .{wrapper.RELEASE_METADATA_JSON});
+    try out.flush();
 }
 
-fn print_install_dir(install_dir: []const u8) !void {
-    try stdout.print("{s}\n", .{install_dir});
-    try stdout.flush();
+fn print_install_dir(out: *std.Io.Writer, install_dir: []const u8) !void {
+    try out.print("{s}\n", .{install_dir});
+    try out.flush();
 }
 
 pub fn do_clean_old_versions(install_prefix_path: []const u8, current_install_path: []const u8) !void {
