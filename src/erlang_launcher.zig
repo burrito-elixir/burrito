@@ -87,7 +87,7 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         win_child_proc.stdout_behavior = .Inherit;
         win_child_proc.stdin_behavior = .Inherit;
 
-        log.debug("CLI List: {s}", .{final_args});
+        log.debug("CLI List: {any}", .{final_args});
 
         const win_term = try win_child_proc.spawnAndWait();
         switch (win_term) {
