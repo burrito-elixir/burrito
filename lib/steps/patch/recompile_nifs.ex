@@ -162,7 +162,6 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       |> Path.wildcard()
       |> List.first()
 
-
     erts_env = erts_make_env(erts_path)
 
     {_, 0} = System.cmd("mix", ["clean", "--deps"], cd: path)
@@ -180,28 +179,41 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
         Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
         src_priv_files =
-          Path.join(output_priv_dir, ["priv/**"]) |> Path.expand() |> Path.wildcard()
+          Path.join([output_priv_dir, "priv", cross_target, "**"])
+          |> Path.expand()
+          |> Path.wildcard()
+          |> Enum.reject(&File.dir?(&1))
 
         final_output_priv_dir = Path.join(output_priv_dir, "priv")
 
         Enum.each(src_priv_files, fn file ->
-          file_name = Path.basename(file)
-
-          if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
-            new_file_name = String.replace_trailing(file_name, ".so", ".dll")
-            dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
-
-            Log.info(:step, "#{file} -> #{dst_fullpath}")
-
-            File.rename!(file, dst_fullpath)
-          else
-            file_name
-          end
+          file
+          |> move_to_host_dir!(cross_target)
+          |> rename_to_dll_on_windows!(cross_target)
         end)
 
       {_output, _non_zero} ->
         Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
         exit(1)
+    end
+  end
+
+  defp move_to_host_dir!(file, cross_target) do
+    dst_fullpath = String.replace(file, cross_target, "host")
+
+    if File.exists?(dst_fullpath), do: File.rm_rf!(dst_fullpath)
+    File.rename!(file, dst_fullpath)
+
+    dst_fullpath
+  end
+
+  defp rename_to_dll_on_windows!(file, cross_target) do
+    if Path.extname(file) == ".so" && String.contains?(cross_target, "windows") do
+      dst_fullpath = String.replace_trailing(file, ".so", ".dll")
+
+      Log.info(:step, "#{file} -> #{dst_fullpath}")
+
+      File.rename!(file, dst_fullpath)
     end
   end
 
