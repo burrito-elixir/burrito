@@ -37,6 +37,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     context
   end
 
+  @compilers [:elixir_make, :build_dot_zig]
   def nif_sniff() do
     # The current procedure for finding out if a dependency has a NIF:
     # - List all deps in the project using Mix.Project.deps_paths/0
@@ -51,18 +52,22 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     Enum.map(paths, fn {dep_name, path} ->
       Mix.Project.in_project(dep_name, path, fn module ->
         if module && Keyword.has_key?(module.project(), :compilers) do
-          {dep_name, path, Enum.member?(module.project()[:compilers], :elixir_make)}
+          {dep_name, path, first_matching_compiler(module, @compilers)}
         else
-          {dep_name, path, false}
+          {dep_name, path, nil}
         end
       end)
     end)
   end
 
-  defp maybe_recompile_nif({_, _, false}, _, _, _, _, _, _, _), do: :no_nif
+  defp first_matching_compiler(module, compilers) do
+    Enum.find(module.project()[:compilers], &(&1 in compilers))
+  end
+
+  defp maybe_recompile_nif({_, _, nil}, _, _, _, _, _, _, _), do: :no_nif
 
   defp maybe_recompile_nif(
-         {dep, path, true},
+         {dep, path, :elixir_make},
          release_working_path,
          erts_path,
          cross_target,
@@ -110,6 +115,72 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
         src_priv_files =
           Path.join(output_priv_dir, ["priv/*"]) |> Path.expand() |> Path.wildcard()
+
+        final_output_priv_dir = Path.join(output_priv_dir, "priv")
+
+        Enum.each(src_priv_files, fn file ->
+          file_name = Path.basename(file)
+
+          if Path.extname(file_name) == ".so" && String.contains?(cross_target, "windows") do
+            new_file_name = String.replace_trailing(file_name, ".so", ".dll")
+            dst_fullpath = Path.join(final_output_priv_dir, new_file_name)
+
+            Log.info(:step, "#{file} -> #{dst_fullpath}")
+
+            File.rename!(file, dst_fullpath)
+          else
+            file_name
+          end
+        end)
+
+      {_output, _non_zero} ->
+        Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
+        exit(1)
+    end
+  end
+
+  defp maybe_recompile_nif(
+         {dep, path, :build_dot_zig},
+         release_working_path,
+         erts_path,
+         cross_target,
+         _extra_cflags,
+         _extra_cxxflags,
+         _extra_env,
+         _extra_make_args
+       ) do
+    dep = Atom.to_string(dep)
+
+    Log.info(
+      :step,
+      "Going to recompile NIF with build_dot_zig for cross-build: #{dep} -> #{cross_target}"
+    )
+
+    output_priv_dir =
+      Path.join(release_working_path, ["lib/#{dep}*/"])
+      |> Path.expand()
+      |> Path.wildcard()
+      |> List.first()
+
+
+    erts_env = erts_make_env(erts_path)
+
+    {_, 0} = System.cmd("mix", ["clean", "--deps"], cd: path)
+
+    build_result =
+      System.cmd("mix", ["compile"],
+        cd: path,
+        env: [{"MIX_APP_PATH", output_priv_dir}, {"MIX_TARGET", cross_target}] ++ erts_env,
+        stderr_to_stdout: true,
+        into: IO.stream()
+      )
+
+    case build_result do
+      {_, 0} ->
+        Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
+
+        src_priv_files =
+          Path.join(output_priv_dir, ["priv/**"]) |> Path.expand() |> Path.wildcard()
 
         final_output_priv_dir = Path.join(output_priv_dir, "priv")
 
