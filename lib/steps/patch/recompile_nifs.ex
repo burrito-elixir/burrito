@@ -146,7 +146,7 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
          cross_target,
          _extra_cflags,
          _extra_cxxflags,
-         _extra_env,
+         extra_env,
          _extra_make_args
        ) do
     dep = Atom.to_string(dep)
@@ -164,12 +164,23 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
 
     erts_env = erts_make_env(erts_path)
 
-    {_, 0} = System.cmd("mix", ["clean", "--deps"], cd: path)
+    build_mode = "ReleaseSafe"
+    zig_install_dir = Path.join([output_priv_dir, "priv", "host"])
+
+    zig_args = [
+      "build",
+      "-Dtarget=#{cross_target}",
+      "-Doptimize=#{build_mode}",
+      "--prefix",
+      "#{zig_install_dir}"
+    ]
 
     build_result =
-      System.cmd("mix", ["compile"],
+      System.cmd(
+        "zig",
+        zig_args,
         cd: path,
-        env: [{"MIX_APP_PATH", output_priv_dir}, {"MIX_TARGET", cross_target}] ++ erts_env,
+        env: erts_env ++ extra_env,
         stderr_to_stdout: true,
         into: IO.stream()
       )
@@ -178,19 +189,14 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
       {_, 0} ->
         Log.info(:step, "Successfully re-built #{dep} for #{cross_target}!")
 
-        src_priv_files =
-          Path.join([output_priv_dir, "priv", cross_target, "**"])
+        output_files =
+          Path.join([zig_install_dir, "**"])
           |> Path.expand()
           |> Path.wildcard()
-          |> Enum.reject(&File.dir?(&1))
 
-        final_output_priv_dir = Path.join(output_priv_dir, "priv")
-
-        Enum.each(src_priv_files, fn file ->
-          file
-          |> move_to_host_dir!(cross_target)
-          |> rename_to_dll_on_windows!(cross_target)
-        end)
+        if String.contains?(cross_target, "windows") do
+          Enum.each(output_files, &rename_to_dll!(&1))
+        end
 
       {_output, _non_zero} ->
         Log.error(:step, "Failed to rebuild #{dep} for #{cross_target}!")
@@ -198,17 +204,8 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     end
   end
 
-  defp move_to_host_dir!(file, cross_target) do
-    dst_fullpath = String.replace(file, cross_target, "host")
-
-    if File.exists?(dst_fullpath), do: File.rm_rf!(dst_fullpath)
-    File.rename!(file, dst_fullpath)
-
-    dst_fullpath
-  end
-
-  defp rename_to_dll_on_windows!(file, cross_target) do
-    if Path.extname(file) == ".so" && String.contains?(cross_target, "windows") do
+  defp rename_to_dll!(file) do
+    if Path.extname(file) == ".so" do
       dst_fullpath = String.replace_trailing(file, ".so", ".dll")
 
       Log.info(:step, "#{file} -> #{dst_fullpath}")
