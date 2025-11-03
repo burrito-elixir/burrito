@@ -1,5 +1,13 @@
 # 🌯 Changelog
 
+## v1.5.0
+
+* Changes:
+  * Bump Zig to version `0.15.2`.
+  * README improvements.
+  * Zig side logger improvements, do not use heap allocations.
+  * Fix warning when using `module.project()`.
+
 ## v1.4.0
 
 * Changes:
