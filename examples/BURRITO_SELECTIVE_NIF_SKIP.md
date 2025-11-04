@@ -47,23 +47,6 @@ After applying this patch, `skip_nifs` accepts:
 - `true` - Skip all NIFs (original behavior)
 - `[:atom1, :atom2]` - Skip only specified NIFs, recompile others (NEW!)
 
-## Application
-
-### Method 1: Git Patch
-```bash
-cd /path/to/burrito
-git apply burrito_selective_nif_skip.patch
-```
-
-### Method 2: Manual Edit
-Edit `lib/steps/patch/recompile_nifs.ex` in your Burrito installation and replace the `execute/1` function as shown in the patch.
-
-### Method 3: Use Modified Burrito as Path Dependency
-```elixir
-# In mix.exs
-{:burrito, path: "/path/to/modified/burrito"}
-```
-
 ## Real-World Example: Vix with Precompiled libvips
 
 ### Problem Context
