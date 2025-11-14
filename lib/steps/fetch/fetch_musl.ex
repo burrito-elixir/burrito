@@ -53,7 +53,28 @@ defmodule Burrito.Steps.Fetch.FetchMusl do
   defp do_download(url, cache_key) do
     {:ok, _} = Application.ensure_all_started(:req)
     Log.info(:step, "Downloading file: #{url}")
-    resp = Req.get!(url, raw: true)
+
+    resp =
+      cond do
+        proxy = System.get_env("HTTP_PROXY") || System.get_env("http_proxy") ->
+          Log.info(:step, "Using HTTP_PROXY: #{proxy}")
+          URI.parse(proxy)
+
+        proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy") ->
+          Log.info(:step, "Using HTTPS_PROXY: #{proxy}")
+          URI.parse(proxy)
+
+        true ->
+          nil
+      end
+      |> case do
+        %{scheme: scheme, host: host, port: port} when scheme in ["http", "https"] ->
+          proxy = {String.to_atom(scheme), host, port, []}
+          Req.get!(url, raw: true, connect_options: [proxy: proxy])
+
+        _ ->
+          Req.get!(url, raw: true)
+      end
 
     if resp.status != 200 do
       raise "Failed to fetch musl runtime: #{url}! (Got #{resp.status}) -- please file an issue! Thanks!"
