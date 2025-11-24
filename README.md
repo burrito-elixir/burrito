@@ -122,7 +122,7 @@ You must have the following installed and in your PATH:
 
     ```elixir
     defp deps do
-      [{:burrito, "~> 1.0.0"}]
+      [{:burrito, "~> 1.0"}]
     end
     ```
 
