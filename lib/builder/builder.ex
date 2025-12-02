@@ -86,8 +86,8 @@ defmodule Burrito.Builder do
 
     # Build every target
     Enum.each(build_targets, fn {name, t} ->
-      target = Target.init_target(name, t)
-      target = %Target{target | debug?: debug?}
+      %Target{} = target = Target.init_target(name, t)
+      target = %{target | debug?: debug?}
 
       self_path =
         __ENV__.file
