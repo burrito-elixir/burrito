@@ -70,7 +70,7 @@ defmodule Burrito.Builder.Target do
   end
 
   defp is_cross_build?(fields) do
-    fields[:os] != Util.get_current_os() || fields[:cpu] != Util.get_current_cpu() or
+    (fields[:os] != Util.get_current_os() || fields[:cpu] != Util.get_current_cpu()) or
       fields[:os] == :linux
   end
 

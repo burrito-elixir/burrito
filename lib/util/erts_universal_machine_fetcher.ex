@@ -15,10 +15,12 @@ defmodule Burrito.Util.ERTSUniversalMachineFetcher do
     final_url =
       case os do
         :darwin ->
-          @mac_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money <> append_versions()
+          @mac_url <>
+            @please_do_not_abuse_these_downloads_bandwidth_costs_money <> append_versions()
 
         :linux ->
-          @linux_url <> @please_do_not_abuse_these_downloads_bandwidth_costs_money <> append_versions()
+          @linux_url <>
+            @please_do_not_abuse_these_downloads_bandwidth_costs_money <> append_versions()
 
         :windows ->
           @windows_url

@@ -33,6 +33,7 @@ defmodule Burrito.Util.Args do
   @spec get_bin_path() :: binary() | :not_in_burrito
   def get_bin_path() do
     env_value = System.get_env("__BURRITO_BIN_PATH")
+
     if env_value != nil do
       env_value
     else
