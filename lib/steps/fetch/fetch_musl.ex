@@ -55,20 +55,9 @@ defmodule Burrito.Steps.Fetch.FetchMusl do
     Log.info(:step, "Downloading file: #{url}")
 
     resp =
-      cond do
-        proxy = System.get_env("HTTP_PROXY") || System.get_env("http_proxy") ->
-          Log.info(:step, "Using HTTP_PROXY: #{proxy}")
-          URI.parse(proxy)
-
-        proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy") ->
-          Log.info(:step, "Using HTTPS_PROXY: #{proxy}")
-          URI.parse(proxy)
-
-        true ->
-          nil
-      end
-      |> case do
-        %{scheme: scheme, host: host, port: port} when scheme in ["http", "https"] ->
+      case Burrito.Util.get_proxy() do
+        proxy = %{scheme: scheme, host: host, port: port} when scheme in ["http", "https"] ->
+          Log.info(:step, "Using PROXY: #{proxy}")
           proxy = {String.to_atom(scheme), host, port, []}
           Req.get!(url, raw: true, connect_options: [proxy: proxy])
 
