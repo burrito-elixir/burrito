@@ -47,4 +47,24 @@ defmodule Burrito.Util do
   def running_standalone?() do
     System.get_env("__BURRITO") != nil
   end
+
+  @doc """
+  Gets the HTTP or HTTPS proxy from environment variables, if set.
+  1. Checks `HTTP_PROXY` and `http_proxy`
+  2. Checks `HTTPS_PROXY` and `https_proxy`
+  3. Returns `nil` if no proxy is set
+  """
+  @spec get_proxy :: URI.t() | nil
+  def get_proxy do
+    cond do
+      proxy = System.get_env("HTTP_PROXY") || System.get_env("http_proxy") ->
+        URI.parse(proxy)
+
+      proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy") ->
+        URI.parse(proxy)
+
+      true ->
+        nil
+    end
+  end
 end
