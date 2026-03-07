@@ -118,6 +118,16 @@ pub fn launch(install_dir: []const u8, env_map: *EnvMap, meta: *const MetaStruct
         try erl_env_map.put("__BURRITO", "1");
         try erl_env_map.put("__BURRITO_BIN_PATH", self_path);
 
+        // Extend LD_LIBRARY_PATH so NIF .so files can find system shared
+        // libraries (e.g. libgcc_s.so.1) when using a custom glibc ERTS
+        const system_lib_paths = "/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/lib:/usr/lib";
+        if (erl_env_map.get("LD_LIBRARY_PATH")) |existing| {
+            const combined = try std.fmt.allocPrint(allocator, "{s}:{s}", .{ existing, system_lib_paths });
+            try erl_env_map.put("LD_LIBRARY_PATH", combined);
+        } else {
+            try erl_env_map.put("LD_LIBRARY_PATH", system_lib_paths);
+        }
+
         return std.process.execve(allocator, final_args, &erl_env_map);
     }
 }
