@@ -105,7 +105,13 @@ pub fn main() !void {
         log.debug("Skipping archive unpacking, this machine already has the app installed!", .{});
     }
 
-    // Clean up older versions
+    // Mark this install as in-use (pidfile) BEFORE any cleanup can run, so a
+    // concurrently-launched newer version never deletes our payload mid-run.
+    // The upcoming exec preserves our PID, keeping the pidfile accurate for
+    // the app's whole lifetime.
+    maint.mark_install_live(arena, install_dir);
+
+    // Clean up older versions (skips installs with live pidfiles)
     const base_install_path = try get_base_install_dir(arena);
     try maint.do_clean_old_versions(base_install_path, install_dir);
 
