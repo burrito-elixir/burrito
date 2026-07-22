@@ -100,15 +100,62 @@ pub fn launch(io: Io, install_dir: []const u8, env_map: *std.process.Environ.Map
         }
     }
 
-    // Spawn child and wait for exit.
-    // The BEAM's exit code becomes the Burrito binary's exit code.
-    var child = try std.process.spawn(io, .{
-        .argv = final_args,
-        .environ_map = env_map,
-    });
-    const term = try child.wait(io);
+    // On Unix: pipe child stdout through us so we can detect EPIPE from
+    // the downstream consumer (e.g. `app cmd | head -5`). When the consumer
+    // exits and breaks the pipe, the copy thread kills the BEAM child.
+    // On Windows: inherit stdout directly — std.c.read blocks on Windows
+    // pipes, and the EPIPE group-leader hang is Unix-specific anyway.
+    var child: std.process.Child = undefined;
+    var copy_thread: ?std.Thread = null;
+
+    if (builtin.os.tag != .windows) {
+        child = try std.process.spawn(io, .{
+            .argv = final_args,
+            .environ_map = env_map,
+            .stdout = .pipe,
+        });
+        copy_thread = try std.Thread.spawn(.{}, stdoutCopyThread, .{io, &child});
+    } else {
+        child = try std.process.spawn(io, .{
+            .argv = final_args,
+            .environ_map = env_map,
+        });
+    }
+
+    const term = if (builtin.os.tag != .windows)
+        child.wait(io) catch {
+            copy_thread.?.join();
+            std.process.exit(0);
+        }
+    else
+        try child.wait(io);
+
+    if (copy_thread) |t| t.join();
+
     switch (term) {
         .exited => |code| std.process.exit(code),
         else => std.process.exit(1),
+    }
+}
+
+/// Copies child process stdout to our stdout (Unix only).
+/// When the downstream pipe breaks (EPIPE), kills the child to prevent
+/// it from hanging during VM shutdown (BEAM tries to flush standard_io
+/// which blocks forever on a dead pipe).
+fn stdoutCopyThread(io: Io, child: *std.process.Child) void {
+    if (builtin.os.tag == .windows) return;
+    const stdout_file = child.stdout orelse return;
+    const stdin_fd = stdout_file.handle;
+    const stdout_fd = Io.File.stdout().handle;
+    var buf: [16384]u8 = undefined;
+
+    while (true) {
+        const n = std.posix.read(stdin_fd, &buf) catch break;
+        if (n == 0) break;
+        const written = std.c.write(stdout_fd, buf[0..n].ptr, n);
+        if (written < 0) {
+            child.kill(io);
+            return;
+        }
     }
 }
