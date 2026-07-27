@@ -88,6 +88,81 @@ jobs:
           path: ./examples/**/burrito_out/*
           retention-days: 1
 
+  #### Zig auto-resolution checks ####
+  # Prove the two failure modes ZigResolver exists for: no system zig at all, and a
+  # system zig that doesn't match the pinned version. Single-host (ubuntu-latest) is
+  # enough to exercise the resolver's tiers; build_examples already covers the
+  # already-correctly-configured case across hosts.
+  build_no_system_zig:
+    name: build_no_system_zig
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.3"
+          elixir-version: "1.18.3"
+
+      - run: sudo apt-get -y install xz-utils
+
+      - uses: actions/cache/restore@v3
+        id: cache-restore-no-zig
+        with:
+          path: /home/runner/.cache/burrito_file_cache/
+          key: burrito-download-cache_no-system-zig
+
+      - name: cli_example
+        working-directory: "./examples/cli_example"
+        run: "mix deps.get && mix release"
+
+      - uses: actions/cache/save@v3
+        id: cache-save-no-zig
+        with:
+          path: /home/runner/.cache/burrito_file_cache/
+          key: burrito-download-cache_no-system-zig
+
+      - run: chmod +x examples/cli_example/burrito_out/example_cli_app_linux
+      - run: examples/cli_example/burrito_out/example_cli_app_linux
+
+  build_wrong_system_zig:
+    name: build_wrong_system_zig
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.3"
+          elixir-version: "1.18.3"
+
+      # Deliberately the prior pin, not the current one, so the resolver's exact-match
+      # check on $PATH must reject it and fall through to downloading the pinned version.
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: "0.15.2"
+
+      - run: sudo apt-get -y install xz-utils
+
+      - uses: actions/cache/restore@v3
+        id: cache-restore-wrong-zig
+        with:
+          path: /home/runner/.cache/burrito_file_cache/
+          key: burrito-download-cache_wrong-system-zig
+
+      - name: cli_example
+        working-directory: "./examples/cli_example"
+        run: "mix deps.get && mix release"
+
+      - uses: actions/cache/save@v3
+        id: cache-save-wrong-zig
+        with:
+          path: /home/runner/.cache/burrito_file_cache/
+          key: burrito-download-cache_wrong-system-zig
+
+      - run: chmod +x examples/cli_example/burrito_out/example_cli_app_linux
+      - run: examples/cli_example/burrito_out/example_cli_app_linux
+
   #### Run example binaries ####
   # Windows binaries: built on Linux/macOS hosts, run on windows-latest
   run_examples_windows:

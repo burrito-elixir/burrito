@@ -27,10 +27,14 @@ defmodule Burrito do
   end
 
   defp pre_check() do
-    if Enum.any?(~w(zig xz), &(System.find_executable(&1) == nil)) do
+    # NOTE: `zig` is intentionally not checked here. `Burrito.Steps.Fetch.ResolveZig`
+    # resolves (and, if needed, downloads) a compatible zig per-target during the
+    # build's fetch phase instead of requiring one on PATH up front -- see its
+    # moduledoc, and `Burrito.Util.ZigResolver`, for the resolution order.
+    if System.find_executable("xz") == nil do
       Log.error(
         :build,
-        "You MUST have `zig` and `xz` installed to use Burrito, we couldn't find all of them in your PATH!"
+        "You MUST have `xz` installed to use Burrito, we couldn't find it in your PATH!"
       )
 
       exit(1)
@@ -41,22 +45,6 @@ defmodule Burrito do
         :build,
         "We couldn't find 7z/7zz in your PATH, 7z/7zz is required to build Windows releases. They will fail if you don't fix this!"
       )
-    end
-
-    check_zig_version()
-  end
-
-  defp check_zig_version() do
-    {res, _} = System.cmd("zig", ["version"])
-    version = String.trim(res) |> Version.parse!()
-
-    if version != @zig_version_expected do
-      Log.error(
-        :build,
-        "Your Zig version does not match the one Burrito requires! We need `#{Version.to_string(@zig_version_expected)}`, you have: `#{Version.to_string(version)}`"
-      )
-
-      exit(1)
     end
   end
 end

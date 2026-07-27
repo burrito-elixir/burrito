@@ -12,5 +12,6 @@ defmodule Burrito.Builder.Context do
     field(:self_dir, String.t())
     field(:extra_build_env, list({String.t(), String.t()}))
     field(:halted, boolean())
+    field(:zig_bin, String.t())
   end
 end
