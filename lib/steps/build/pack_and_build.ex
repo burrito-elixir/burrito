@@ -27,7 +27,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
 
     build_env =
       [
-        {"__BURRITO_IS_PROD", is_prod(context.target)},
+        {"__BURRITO_IS_PROD", is_prod(context.target, options)},
         {"__BURRITO_RELEASE_PATH", context.work_dir},
         {"__BURRITO_RELEASE_NAME", release_name},
         {"__BURRITO_PLUGIN_PATH", plugin_path}
@@ -85,10 +85,12 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Path.join(self_path, ["src/", "_metadata.json"]) |> File.write!(encoded)
   end
 
-  defp is_prod(%Target{debug?: debug?}) do
+  defp is_prod(%Target{debug?: debug?}, options) do
+    prod_envs = Keyword.get(options, :prod_envs, [:prod])
+
     cond do
       debug? -> "0"
-      Mix.env() == :prod -> "1"
+      Mix.env() in prod_envs -> "1"
       true -> "0"
     end
   end
