@@ -100,15 +100,24 @@ pub fn launch(io: Io, install_dir: []const u8, env_map: *std.process.Environ.Map
         }
     }
 
-    // On Unix: pipe child stdout through us so we can detect EPIPE from
-    // the downstream consumer (e.g. `app cmd | head -5`). When the consumer
-    // exits and breaks the pipe, the copy thread kills the BEAM child.
-    // On Windows: inherit stdout directly — std.c.read blocks on Windows
+    // On Unix, when stdout is NOT a tty (piped/redirected): pipe child
+    // stdout through us so we can detect EPIPE from the downstream consumer
+    // (e.g. `app cmd | head -5`). When the consumer exits and breaks the
+    // pipe, the copy thread kills the BEAM child.
+    //
+    // When stdout IS a tty, inherit it directly: the BEAM's prim_tty needs
+    // both stdin and stdout to be TTYs for raw mode, ANSI detection, and
+    // keyboard input to work (interactive/TUI apps), and the EPIPE hang
+    // cannot occur on a tty.
+    //
+    // On Windows: always inherit stdout — std.c.read blocks on Windows
     // pipes, and the EPIPE group-leader hang is Unix-specific anyway.
+    const stdout_is_tty = Io.File.stdout().isTty(io) catch false;
+
     var child: std.process.Child = undefined;
     var copy_thread: ?std.Thread = null;
 
-    if (builtin.os.tag != .windows) {
+    if (builtin.os.tag != .windows and !stdout_is_tty) {
         child = try std.process.spawn(io, .{
             .argv = final_args,
             .environ_map = env_map,
@@ -124,7 +133,7 @@ pub fn launch(io: Io, install_dir: []const u8, env_map: *std.process.Environ.Map
 
     const term = if (builtin.os.tag != .windows)
         child.wait(io) catch {
-            copy_thread.?.join();
+            if (copy_thread) |t| t.join();
             std.process.exit(0);
         }
     else
