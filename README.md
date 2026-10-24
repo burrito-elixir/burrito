@@ -1,5 +1,7 @@
 # Burrito 🌯
 
+> ⚠️ NOTICE: This repo will be _archived_ on November 30th 2026 ⚠️
+
 [![Hex version badge](https://img.shields.io/hexpm/v/burrito.svg)](https://hex.pm/packages/burrito)
 
 ## Cross-Platform Elixir Deployments
