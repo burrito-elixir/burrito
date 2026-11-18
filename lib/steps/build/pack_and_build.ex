@@ -16,7 +16,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
 
     zig_build_args = ["-Dtarget=#{build_triplet}"]
 
-    create_metadata_file(context.self_dir, zig_build_args, context.mix_release)
+    create_metadata_file(context.self_dir, zig_build_args, context.mix_release, context.zig_bin)
 
     # TODO: Why do we need to do this???
     # This is to bypass a VERY strange bug inside Linux containers...
@@ -36,7 +36,7 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Log.info(:step, "Zig build env: #{inspect(build_env)}")
 
     build_result =
-      System.cmd("zig", ["build"] ++ zig_build_args,
+      System.cmd(context.zig_bin, ["build"] ++ zig_build_args,
         cd: context.self_dir,
         env: build_env,
         into: IO.stream()
@@ -66,10 +66,10 @@ defmodule Burrito.Steps.Build.PackAndBuild do
     Path.join(File.cwd!(), [plugin_path])
   end
 
-  defp create_metadata_file(self_path, args, release) do
+  defp create_metadata_file(self_path, args, release, zig_bin) do
     Log.info(:step, "Generating wrapper metadata file...")
 
-    {zig_version_string, 0} = System.cmd("zig", ["version"], cd: self_path)
+    {zig_version_string, 0} = System.cmd(zig_bin, ["version"], cd: self_path)
 
     metadata_map = %{
       app_name: Atom.to_string(release.name),
