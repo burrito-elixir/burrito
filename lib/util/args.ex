@@ -11,8 +11,18 @@ defmodule Burrito.Util.Args do
   """
   @spec get_arguments :: list(String.t())
   def get_arguments do
-    :init.get_plain_arguments() |> Enum.map(&to_string/1)
+    :init.get_plain_arguments()
+    |> Enum.map(&to_string/1)
+    |> strip_separator()
   end
+
+  # The wrapper passes `--no-halt --` after `-extra` to keep Elixir's CLI from
+  # halting the VM and from claiming the application's arguments. Neither is an
+  # argument, so drop them. Only this exact leading pair is matched, so an
+  # application that takes its own `--` still sees it.
+  defp strip_separator(["--no-halt", "--" | rest]), do: rest
+  defp strip_separator(["--" | rest]), do: rest
+  defp strip_separator(args), do: args
 
   @doc """
   Get the arguments from the CLI, regardless if run under Burrito or not.

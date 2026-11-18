@@ -72,6 +72,19 @@ pub fn launch(io: Io, install_dir: []const u8, env_map: *std.process.Environ.Map
         "-config",
         config_sys_path,
         "-extra",
+        // These two are for Elixir's CLI, which runs via `-s elixir start_cli`
+        // above and reads everything after `-extra`.
+        //
+        // --no-halt: without it the CLI halts the VM once it finishes, killing
+        // any application that is meant to keep running.
+        //
+        // --: without it the CLI claims --version and --help for itself and
+        // treats the first remaining argument as a script path.
+        //
+        // Burrito.Util.Args strips both back off before the application sees
+        // its arguments.
+        "--no-halt",
+        "--",
     };
 
     // Cross-platform: build args once, set env, spawn child, wait for exit
