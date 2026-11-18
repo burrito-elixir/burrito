@@ -219,7 +219,7 @@ fn install_dir_error(arena: std.mem.Allocator) void {
 }
 
 fn maybe_install_musl_runtime(io: Io) !void {
-    if (!std.mem.eql(u8, build_options.MUSL_RUNTIME_PATH, "")) {
+    if (comptime !std.mem.eql(u8, build_options.MUSL_RUNTIME_PATH, "")) {
         // Check if the file was already extracted using std.fs API (cross-platform)
         const file_exists = Io.Dir.cwd().statFile(io, build_options.MUSL_RUNTIME_PATH, .{}) catch null;
 
