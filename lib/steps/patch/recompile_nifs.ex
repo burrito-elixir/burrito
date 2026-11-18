@@ -12,25 +12,38 @@ defmodule Burrito.Steps.Patch.RecompileNIFs do
     cxxflags = Keyword.get(context.target.qualifiers, :nif_cxxflags, "")
     nif_env = Keyword.get(context.target.qualifiers, :nif_env, [])
     nif_make_args = Keyword.get(context.target.qualifiers, :nif_make_args, [])
-    skip_nifs? = Keyword.get(context.target.qualifiers, :skip_nifs, false)
+    skip_nifs_config = Keyword.get(context.target.qualifiers, :skip_nifs, false)
 
-    if context.target.cross_build and not skip_nifs? do
+    # Support both boolean (skip all) and list (skip specific NIFs)
+    skip_nifs_list = case skip_nifs_config do
+      true -> :all
+      false -> []
+      list when is_list(list) -> list
+      _ -> []
+    end
+
+    if context.target.cross_build and skip_nifs_list != :all do
       triplet = Target.make_triplet(context.target)
 
       {:local_unpacked, path: erts_location} = context.target.erts_source
 
       nif_sniff()
       |> Enum.each(fn dep ->
-        maybe_recompile_nif(
-          dep,
-          context.work_dir,
-          erts_location,
-          triplet,
-          cflags,
-          cxxflags,
-          nif_env,
-          nif_make_args
-        )
+        should_skip = skip_nifs_list == :all or
+                      (elem(dep, 0) in skip_nifs_list)
+
+        unless should_skip do
+          maybe_recompile_nif(
+            dep,
+            context.work_dir,
+            erts_location,
+            triplet,
+            cflags,
+            cxxflags,
+            nif_env,
+            nif_make_args
+          )
+        end
       end)
     end
 
